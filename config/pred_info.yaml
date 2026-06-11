@@ -1,0 +1,37 @@
+data:
+  csv_path: data/Bitcoin_2010.csv
+
+timeframes:
+  T_days:
+    - 90
+    - 120
+    - 180
+    - 270
+    - 365
+    - 540
+    - 730
+    - 1095
+  H_days:
+    - 50
+    - 100
+    - 150
+    - 200
+    - 250
+    - 300
+    - 365
+    - 500
+    - 750
+    - 1000
+
+matching:
+  k_wiggle: 0.01
+  k_wiggle_sweep_min: 0.001
+  k_wiggle_sweep_max: 0.15
+
+filtering:
+  min_occurrences: 0
+  top_n: 10
+  slice_top_n: 5
+
+output:
+  plot_dpi: 150

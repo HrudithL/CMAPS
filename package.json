@@ -1,0 +1,12 @@
+{
+  "name": "cpmab",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/run-dev.mjs",
+    "dev:api": "node scripts/dev-api.mjs",
+    "dev:web": "npm run dev --prefix web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
