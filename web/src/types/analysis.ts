@@ -29,32 +29,47 @@ export interface AnalogEvent {
   return_pct: number;
 }
 
-export interface CurvePoint {
-  T?: number;
-  H?: number;
-  cp: number;
-  n: number;
-}
-
-export interface CurveSeries {
-  H?: number;
-  T?: number;
-  label: string;
-  primary?: boolean;
-  points: CurvePoint[];
-}
-
-export interface KWiggleLine {
-  H: number;
-  T: number;
-  primary?: boolean;
-  points: { k: number; cp: number; n: number }[];
-}
-
 export interface PriceContextPoint {
   date: string;
   price: number;
   [key: string]: string | number;
+}
+
+export interface ContourHighlightStats {
+  H: number;
+  T: number;
+  side: string;
+  cp: number;
+  hits: number;
+  occurrences: number;
+  k_today: number;
+  forward_resolved: boolean;
+}
+
+export interface ContourPayload {
+  H_values: number[];
+  T_values: number[];
+  cp: (number | null)[][];
+  occurrences: (number | null)[][];
+  sides: (string | null)[][];
+  boundary_h: number[];
+  highlight: { H: number; T: number };
+  highlight_stats: ContourHighlightStats | null;
+}
+
+export interface KHistogramBin {
+  start: number;
+  end: number;
+  count: number;
+}
+
+export interface KDistributionPayload {
+  H: number;
+  k_today: number;
+  k_wiggle: number;
+  histogram: KHistogramBin[];
+  within_wiggle: number;
+  total_history: number;
 }
 
 export interface AnalyzeResponse {
@@ -75,21 +90,11 @@ export interface AnalyzeResponse {
   price_context: {
     series: PriceContextPoint[];
     ma_windows: number[];
-    primary_h: number;
     analysis_date: string;
   };
   analog_events: AnalogEvent[];
-  cp_vs_T: { curves: CurveSeries[]; T_range: [number, number] };
-  cp_vs_H: { curves: CurveSeries[]; H_range: [number, number] };
-  k_wiggle_sweep: { long: KWiggleLine[]; short: KWiggleLine[] };
-  heatmap: {
-    H_values: number[];
-    T_values: number[];
-    long: (number | null)[][];
-    short: (number | null)[][];
-    occurrences: (number | null)[][];
-    highlight: { H: number; T: number };
-  };
+  contour: ContourPayload;
+  k_distribution: KDistributionPayload;
   top_long: StrategyResult[];
   top_short: StrategyResult[];
   top_strategies: StrategyResult[];

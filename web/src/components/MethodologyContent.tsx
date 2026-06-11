@@ -15,7 +15,7 @@ export function MethodologyContent({ epsilon }: Props) {
         </p>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="methodology-math space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             Time index
@@ -25,7 +25,10 @@ export function MethodologyContent({ epsilon }: Props) {
             trading day strictly before τ, from the first day in the dataset
             through τ − 1 day.
           </p>
-          <MathBlock>
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} t &\in \mathcal{D},\quad t < \tau \\ \mathcal{D} &= \{\text{Day 1 BTC}, \ldots, \tau\} \end{aligned}`}
+          >
             {String.raw`t \in \mathcal{D},\quad t < \tau \qquad \mathcal{D} = \{\text{Day 1 BTC}, \ldots, \tau\}`}
           </MathBlock>
         </div>
@@ -34,13 +37,16 @@ export function MethodologyContent({ epsilon }: Props) {
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             Price and moving average
           </p>
-          <MathBlock>
+          <MathBlock fit>
             {String.raw`MA_t(H) = \text{moving average of price over } H \text{ days}`}
           </MathBlock>
-          <MathBlock>
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} P_t &= k_t(H)\cdot MA_t(H) \\ k_t(H) &= \frac{P_t}{MA_t(H)} \end{aligned}`}
+          >
             {String.raw`P_t = k_t(H)\cdot MA_t(H), \quad k_t(H) = \frac{P_t}{MA_t(H)}`}
           </MathBlock>
-          <MathBlock>
+          <MathBlock fit>
             {String.raw`k_\tau(H) = \frac{P_\tau}{MA_\tau(H)}`}
           </MathBlock>
         </div>
@@ -49,7 +55,10 @@ export function MethodologyContent({ epsilon }: Props) {
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             Approximate equality (ε = {epsilon})
           </p>
-          <MathBlock>
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} k_t(H) &\approx k_\tau(H) \\ &\Leftrightarrow\; \left|k_t(H) - k_\tau(H)\right| \leq \varepsilon \end{aligned}`}
+          >
             {String.raw`k_t(H) \approx k_\tau(H) \;\Leftrightarrow\; \left|k_t(H) - k_\tau(H)\right| \leq \varepsilon`}
           </MathBlock>
         </div>
@@ -64,11 +73,17 @@ export function MethodologyContent({ epsilon }: Props) {
             <sub>t</sub> &lt; 1 (long) and above means k<sub>t</sub> &gt; 1
             (short).
           </p>
-          <MathBlock>
-            {String.raw`B_{\text{long}}(H) = \bigl\{ t < \tau : k_t(H) \approx k_\tau(H),\; P_t < MA_t(H) \Leftrightarrow k_t(H) < 1 \bigr\}`}
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} B_{\text{long}}(H) = \bigl\{ t < \tau &: k_t(H) \approx k_\tau(H), \\ & k_t(H) < 1 \bigr\} \end{aligned}`}
+          >
+            {String.raw`B_{\text{long}}(H) = \bigl\{ t < \tau : k_t(H) \approx k_\tau(H),\; k_t(H) < 1 \bigr\}`}
           </MathBlock>
-          <MathBlock>
-            {String.raw`B_{\text{short}}(H) = \bigl\{ t < \tau : k_t(H) \approx k_\tau(H),\; P_t > MA_t(H) \Leftrightarrow k_t(H) > 1 \bigr\}`}
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} B_{\text{short}}(H) = \bigl\{ t < \tau &: k_t(H) \approx k_\tau(H), \\ & k_t(H) > 1 \bigr\} \end{aligned}`}
+          >
+            {String.raw`B_{\text{short}}(H) = \bigl\{ t < \tau : k_t(H) \approx k_\tau(H),\; k_t(H) > 1 \bigr\}`}
           </MathBlock>
         </div>
 
@@ -76,10 +91,16 @@ export function MethodologyContent({ epsilon }: Props) {
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             Long &amp; short outcomes
           </p>
-          <MathBlock>
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} A_{\text{long}}(H,T) = \bigl\{ t \in B_{\text{long}}(H) &: P_{t+T} > P_t \bigr\} \end{aligned}`}
+          >
             {String.raw`A_{\text{long}}(H,T) = \bigl\{ t \in B_{\text{long}}(H) : P_{t+T} > P_t \bigr\}`}
           </MathBlock>
-          <MathBlock>
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} A_{\text{short}}(H,T) = \bigl\{ t \in B_{\text{short}}(H) &: P_{t+T} < P_t \bigr\} \end{aligned}`}
+          >
             {String.raw`A_{\text{short}}(H,T) = \bigl\{ t \in B_{\text{short}}(H) : P_{t+T} < P_t \bigr\}`}
           </MathBlock>
         </div>
@@ -88,10 +109,10 @@ export function MethodologyContent({ epsilon }: Props) {
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             Conditional probability
           </p>
-          <MathBlock>
+          <MathBlock fit>
             {String.raw`CP_{\text{long}}(H,T) = \frac{\left|A_{\text{long}}(H,T)\right|}{\left|B_{\text{long}}(H)\right|}`}
           </MathBlock>
-          <MathBlock>
+          <MathBlock fit>
             {String.raw`CP_{\text{short}}(H,T) = \frac{\left|A_{\text{short}}(H,T)\right|}{\left|B_{\text{short}}(H)\right|}`}
           </MathBlock>
         </div>

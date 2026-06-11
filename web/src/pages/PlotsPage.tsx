@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { ControlPanel } from "../components/ControlPanel";
+import { ContourSection } from "../components/ContourSection";
+import { KDistributionChart } from "../components/KDistributionChart";
 import { Navbar } from "../components/Navbar";
-import { CpCurveChart } from "../components/CpCurveChart";
-import { CpHeatmap } from "../components/CpHeatmap";
-import { KWiggleChart } from "../components/KWiggleChart";
-import { PriceContextChart } from "../components/PriceContextChart";
+import { PriceMaChart } from "../components/PriceMaChart";
 import { StrategyInspector } from "../components/StrategyInspector";
 import { StrategyTable } from "../components/StrategyTable";
 import { useAnalysis } from "../hooks/useAnalysis";
@@ -35,21 +34,6 @@ export function PlotsPage() {
 
   const openStrategy = (row: StrategyResult) => setInspector(row);
 
-  const openFromHeatmap = (H: number, T: number, side: string) => {
-    if (!data) return;
-    openStrategy({
-      H,
-      T,
-      side,
-      k_today: data.k_today,
-      relation: data.relation,
-      hits: 0,
-      occurrences: 0,
-      cp: 0,
-      forward_resolved: data.primary.forward_resolved,
-    });
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar />
@@ -78,36 +62,19 @@ export function PlotsPage() {
 
         {data && (
           <>
-            <PriceContextChart data={data} kWiggle={params.k_wiggle} />
+            <PriceMaChart data={data} maOptions={meta.grid.H_days} />
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <CpCurveChart data={data} axis="T" />
-              <CpCurveChart data={data} axis="H" />
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <KWiggleChart data={data} side="long" />
-              <KWiggleChart data={data} side="short" />
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <CpHeatmap
-                data={data}
-                side="long"
-                onCellClick={(s) => openFromHeatmap(s.H, s.T, "long")}
-              />
-              <CpHeatmap
-                data={data}
-                side="short"
-                onCellClick={(s) => openFromHeatmap(s.H, s.T, "short")}
-              />
-            </div>
+            <ContourSection contour={data.contour} />
 
             <StrategyTable
-              title="Top 10 strategies overall"
+              H={params.H}
+              k={data.k_today}
+              relation={data.relation}
               rows={data.top_strategies}
               onRowClick={openStrategy}
             />
+
+            <KDistributionChart distribution={data.k_distribution} />
           </>
         )}
       </main>

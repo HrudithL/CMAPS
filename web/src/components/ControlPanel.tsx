@@ -1,3 +1,4 @@
+import { formatMaRelation } from "../lib/maRelation";
 import type { AnalysisParams, AnalyzeResponse, MetaResponse } from "../types/analysis";
 
 interface Props {
@@ -121,7 +122,7 @@ export function ControlPanel({
               {data.side}
             </span>
             <span className="text-slate-600">
-              k = {data.k_today.toFixed(4)} ({data.relation} MA)
+              k = {data.k_today.toFixed(4)} ({formatMaRelation(data.relation, params.H)})
             </span>
             <span className="font-medium text-slate-900">
               CP {(data.primary.cp * 100).toFixed(1)}% ({data.primary.hits}/

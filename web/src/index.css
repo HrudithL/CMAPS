@@ -10,3 +10,23 @@ body {
     Roboto,
     sans-serif;
 }
+
+.math-fit-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+.math-fit-inner .katex-display {
+  margin: 0.4em 0;
+  text-align: left;
+}
+
+.math-inline .katex {
+  font-size: 0.95em;
+}
+
+@media (max-width: 640px) {
+  .math-inline .katex {
+    font-size: 0.82em;
+  }
+}

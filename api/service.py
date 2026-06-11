@@ -17,7 +17,6 @@ from analysis import (
     load_config,
     rank_strategies,
     resolve_analysis_date,
-    top_unique_from_ranked,
 )
 from data_loader import load_bitcoin_data
 from serializers import analog_to_dict, strategy_to_dict
@@ -72,145 +71,21 @@ def meta_payload() -> dict:
     }
 
 
-def _curves_for_attr(
-    df: pd.DataFrame,
-    analysis_date: pd.Timestamp,
-    fixed_attr: str,
-    sweep_attr: str,
-    fixed_values: list[int],
-    sweep_range: range,
-    k_wiggle: float,
-    min_occurrences: int,
-    primary_fixed: int,
-) -> dict:
-    curves = []
-    for value in fixed_values:
-        points = []
-        for sweep_val in sweep_range:
-            if fixed_attr == "H":
-                H, T = value, sweep_val
-            else:
-                H, T = sweep_val, value
-            row = compute_cp_at(df, analysis_date, H, T, k_wiggle)
-            if row is None or row.occurrences < min_occurrences:
-                continue
-            point = {
-                sweep_attr: sweep_val,
-                "cp": round(row.cp, 4),
-                "n": row.occurrences,
-            }
-            points.append(point)
-        if not points:
-            continue
-        is_primary = value == primary_fixed
-        label = (
-            f"{fixed_attr}={value} (primary)"
-            if is_primary
-            else f"{fixed_attr}={value}"
-        )
-        curves.append(
-            {
-                fixed_attr: value,
-                "label": label,
-                "primary": is_primary,
-                "points": points,
-            }
-        )
-    return curves
-
-
-def _ensure_primary_in_list(values: list[int], primary: int, max_extra: int = 4) -> list[int]:
-    result = [primary]
-    for value in values:
-        if value == primary:
-            continue
-        result.append(value)
-        if len(result) >= max_extra + 1:
-            break
-    return result
-
-
-def _k_wiggle_side_payload(
-    df: pd.DataFrame,
-    analysis_date: pd.Timestamp,
-    strategies: list[StrategyResult],
-    k_values: np.ndarray,
-    min_occurrences: int,
-    primary_h: int,
-    primary_t: int,
-) -> list[dict]:
-    lines = []
-    for strat in strategies:
-        points = []
-        for k in k_values:
-            row = compute_cp_at(df, analysis_date, strat.H, strat.T, float(k))
-            if row is None or row.occurrences < min_occurrences:
-                continue
-            points.append(
-                {
-                    "k": float(k),
-                    "cp": round(row.cp, 4),
-                    "n": row.occurrences,
-                }
-            )
-        if not points:
-            continue
-        lines.append(
-            {
-                "H": strat.H,
-                "T": strat.T,
-                "primary": strat.H == primary_h and strat.T == primary_t,
-                "points": points,
-            }
-        )
-    return lines
-
-
-def _heatmap_payload(
-    all_results: list[StrategyResult],
-    side: str,
-    H_values: list[int],
-    T_values: list[int],
-    min_occurrences: int,
-) -> dict:
-    lookup = {(row.H, row.T): row for row in all_results if row.side == side}
-    long_matrix: list[list[float | None]] = []
-    occ_matrix: list[list[int | None]] = []
-
-    for H in H_values:
-        cp_row: list[float | None] = []
-        occ_row: list[int | None] = []
-        for T in T_values:
-            row = lookup.get((H, T))
-            if row is None:
-                cp_row.append(None)
-                occ_row.append(None)
-            else:
-                cp_row.append(round(row.cp, 4) if row.occurrences >= min_occurrences else None)
-                occ_row.append(row.occurrences)
-        long_matrix.append(cp_row)
-        occ_matrix.append(occ_row)
-
-    return {"values": long_matrix, "occurrences": occ_matrix}
-
-
 def _price_context(
     df: pd.DataFrame,
     analysis_date: pd.Timestamp,
     H_values: list[int],
-    primary_h: int,
 ) -> dict:
-    window_start = analysis_date - pd.Timedelta(days=max(H_values) * 3)
-    subset = df[df.index >= window_start]
+    """Full CSV price series with precomputed MAs for every config H."""
     series = []
-    for date in subset.index:
+    ma_by_h = {H: df["Price"].rolling(window=H).mean() for H in H_values}
+    for date in df.index:
         point: dict = {
             "date": date.strftime("%Y-%m-%d"),
-            "price": round(float(subset.loc[date, "Price"]), 2),
+            "price": round(float(df.loc[date, "Price"]), 2),
         }
         for H in H_values:
-            ma = subset["Price"].rolling(window=H).mean()
-            val = ma.loc[date]
+            val = ma_by_h[H].loc[date]
             if pd.notna(val):
                 point[f"ma_{H}"] = round(float(val), 2)
         series.append(point)
@@ -218,24 +93,262 @@ def _price_context(
     return {
         "series": series,
         "ma_windows": H_values,
-        "primary_h": primary_h,
         "analysis_date": analysis_date.strftime("%Y-%m-%d"),
     }
 
 
-def _strategies_for_k_sweep(
-    ranked: list[StrategyResult],
-    slice_top_n: int,
+def _side_for_h(
+    df: pd.DataFrame,
+    analysis_date: pd.Timestamp,
+    H: int,
+) -> str | None:
+    prices = df["Price"]
+    ma = prices.rolling(window=H).mean()
+    if analysis_date not in ma.index or pd.isna(ma.loc[analysis_date]):
+        return None
+    price_today = float(prices.loc[analysis_date])
+    ma_today = float(ma.loc[analysis_date])
+    if price_today < ma_today:
+        return "long"
+    if price_today > ma_today:
+        return "short"
+    return "neutral"
+
+
+def _find_boundary_h(
+    df: pd.DataFrame,
+    analysis_date: pd.Timestamp,
+    H_min: int,
+    H_max: int,
+) -> list[float]:
+    """H values where price crosses MA(H) on the analysis date."""
+    prices = df["Price"]
+    price_today = float(prices.loc[analysis_date])
+    boundaries: list[float] = []
+    prev_diff: float | None = None
+    prev_h: int | None = None
+
+    for H in range(H_min, H_max + 1):
+        ma = prices.rolling(window=H).mean()
+        if analysis_date not in ma.index:
+            continue
+        ma_val = ma.loc[analysis_date]
+        if pd.isna(ma_val):
+            continue
+        diff = price_today - float(ma_val)
+        if prev_diff is not None and prev_h is not None and prev_diff * diff < 0:
+            span = abs(prev_diff) + abs(diff)
+            if span > 0:
+                boundaries.append(prev_h + abs(prev_diff) / span)
+        prev_diff = diff
+        prev_h = H
+
+    return [round(value, 2) for value in boundaries]
+
+
+def _cp_for_side_cached(
+    df: pd.DataFrame,
+    analysis_date: pd.Timestamp,
+    H: int,
+    T: int,
+    k_wiggle: float,
+    side: str,
+    *,
+    prices: pd.Series,
+    ma: pd.Series,
+    k_series: pd.Series,
+    k_today: float,
+    relation: str,
+) -> StrategyResult | None:
+    """Like compute_cp_for_side but reuses precomputed MA/k for one H."""
+    last_date = df.index.max()
+    history_mask = df.index < analysis_date
+    k_delta = np.abs(k_series - k_today)
+    k_match = k_delta <= k_wiggle
+    valid_base = history_mask & ma.notna() & k_match
+    analog_mask = valid_base & _side_mask_cached(prices, ma, side)
+    forward_resolved = (analysis_date + pd.Timedelta(days=T)) <= last_date
+    future_price = prices.shift(-T)
+    valid = analog_mask & future_price.notna()
+    occurrences = int(valid.sum())
+    if occurrences == 0:
+        return StrategyResult(
+            H=H,
+            T=T,
+            side=side,
+            k_today=k_today,
+            relation=relation,
+            hits=0,
+            occurrences=0,
+            cp=0.0,
+            forward_resolved=forward_resolved,
+        )
+    if side == "long":
+        hits = int((valid & (future_price > prices)).sum())
+    else:
+        hits = int((valid & (future_price < prices)).sum())
+    return StrategyResult(
+        H=H,
+        T=T,
+        side=side,
+        k_today=k_today,
+        relation=relation,
+        hits=hits,
+        occurrences=occurrences,
+        cp=hits / occurrences,
+        forward_resolved=forward_resolved,
+    )
+
+
+def _side_mask_cached(prices: pd.Series, ma: pd.Series, side: str) -> pd.Series:
+    if side == "long":
+        return prices < ma
+    if side == "short":
+        return prices > ma
+    raise ValueError(f"Unknown side: {side}")
+
+
+def _contour_payload(
+    df: pd.DataFrame,
+    analysis_date: pd.Timestamp,
+    H_min: int,
+    H_max: int,
+    T_min: int,
+    T_max: int,
+    step: int,
+    k_wiggle: float,
     primary_h: int,
     primary_t: int,
-) -> list[StrategyResult]:
-    selected = ranked[:slice_top_n]
-    keys = {(s.H, s.T) for s in selected}
-    if (primary_h, primary_t) not in keys:
-        primary = next((r for r in ranked if r.H == primary_h and r.T == primary_t), None)
-        if primary:
-            selected = [primary] + selected[: slice_top_n - 1]
-    return selected
+) -> dict:
+    prices = df["Price"]
+    H_values = list(range(H_min, H_max + 1, step))
+    T_values = list(range(T_min, T_max + 1, step))
+    cp_matrix: list[list[float | None]] = []
+    n_matrix: list[list[int | None]] = []
+    side_rows: list[list[str | None]] = []
+
+    for H in H_values:
+        ma = prices.rolling(window=H).mean()
+        if analysis_date not in ma.index or pd.isna(ma.loc[analysis_date]):
+            cp_matrix.append([None] * len(T_values))
+            n_matrix.append([None] * len(T_values))
+            side_rows.append([None] * len(T_values))
+            continue
+
+        price_today = float(prices.loc[analysis_date])
+        ma_today = float(ma.loc[analysis_date])
+        if price_today < ma_today:
+            side: str | None = "long"
+            relation = "below"
+        elif price_today > ma_today:
+            side = "short"
+            relation = "above"
+        else:
+            side = "neutral"
+            relation = "at"
+
+        k_series = prices / ma
+        k_today = float(k_series.loc[analysis_date])
+
+        cp_row: list[float | None] = []
+        n_row: list[int | None] = []
+        side_row: list[str | None] = []
+        for T in T_values:
+            if side is None or side == "neutral":
+                cp_row.append(None)
+                n_row.append(None)
+                side_row.append(side)
+                continue
+            row = _cp_for_side_cached(
+                df,
+                analysis_date,
+                H,
+                T,
+                k_wiggle,
+                side,
+                prices=prices,
+                ma=ma,
+                k_series=k_series,
+                k_today=k_today,
+                relation=relation,
+            )
+            if row is None:
+                cp_row.append(None)
+                n_row.append(0)
+            else:
+                cp_row.append(round(row.cp, 4))
+                n_row.append(row.occurrences)
+            side_row.append(side)
+        cp_matrix.append(cp_row)
+        n_matrix.append(n_row)
+        side_rows.append(side_row)
+
+    highlight_stats: dict | None = None
+    hi_side = _side_for_h(df, analysis_date, primary_h)
+    if hi_side and hi_side != "neutral":
+        hi_row = compute_cp_for_side(
+            df, analysis_date, primary_h, primary_t, k_wiggle, hi_side
+        )
+        if hi_row is not None:
+            highlight_stats = {
+                "H": primary_h,
+                "T": primary_t,
+                "side": hi_side,
+                "cp": round(hi_row.cp, 4),
+                "hits": hi_row.hits,
+                "occurrences": hi_row.occurrences,
+                "k_today": round(hi_row.k_today, 4),
+                "forward_resolved": hi_row.forward_resolved,
+            }
+
+    return {
+        "H_values": H_values,
+        "T_values": T_values,
+        "cp": cp_matrix,
+        "occurrences": n_matrix,
+        "sides": side_rows,
+        "boundary_h": _find_boundary_h(df, analysis_date, H_min, H_max),
+        "highlight": {"H": primary_h, "T": primary_t},
+        "highlight_stats": highlight_stats,
+    }
+
+
+def _k_distribution_payload(
+    df: pd.DataFrame,
+    analysis_date: pd.Timestamp,
+    H: int,
+    k_wiggle: float,
+    bins: int = 50,
+) -> dict:
+    prices = df["Price"]
+    ma = prices.rolling(window=H).mean()
+    k_series = prices / ma
+    if analysis_date not in k_series.index or pd.isna(k_series.loc[analysis_date]):
+        raise ValueError(f"k undefined for H={H} on analysis date.")
+
+    history_mask = df.index < analysis_date
+    valid = history_mask & ma.notna() & k_series.notna()
+    k_hist = k_series[valid]
+    k_today = float(k_series.loc[analysis_date])
+
+    counts, edges = np.histogram(k_hist.values, bins=bins)
+    histogram = [
+        {
+            "start": round(float(edges[i]), 4),
+            "end": round(float(edges[i + 1]), 4),
+            "count": int(counts[i]),
+        }
+        for i in range(len(counts))
+    ]
+
+    return {
+        "H": H,
+        "k_today": round(k_today, 4),
+        "k_wiggle": k_wiggle,
+        "histogram": histogram,
+        "within_wiggle": int((np.abs(k_hist - k_today) <= k_wiggle).sum()),
+        "total_history": int(valid.sum()),
+    }
 
 
 def analyze_payload(
@@ -250,8 +363,6 @@ def analyze_payload(
     df = get_dataframe()
     H_values = config["timeframes"]["H_days"]
     T_values = config["timeframes"]["T_days"]
-    slice_top_n = int(config["filtering"].get("slice_top_n", 5))
-
     if date_text is None:
         date_text = df.index.max().strftime("%Y-%m-%d")
 
@@ -275,36 +386,20 @@ def analyze_payload(
     top_long = rank_strategies(long_rows, min_occurrences, top_n)
     top_short = rank_strategies(short_rows, min_occurrences, top_n)
 
-    ranked_all = sorted(
-        [r for r in all_results if r.occurrences >= min_occurrences],
+    results_for_h: list[StrategyResult] = []
+    for T in T_values:
+        for side in ("long", "short"):
+            row = compute_cp_for_side(df, analysis_date, H, T, k_wiggle, side)
+            if row is not None and row.occurrences > 0:
+                results_for_h.append(row)
+    top_strategies = sorted(
+        results_for_h,
         key=lambda row: (row.cp, row.occurrences),
         reverse=True,
     )
-    top_strategies = ranked_all[:top_n]
-    top_H_unique = top_unique_from_ranked(ranked_all, "H", slice_top_n)
-    top_T_unique = top_unique_from_ranked(ranked_all, "T", slice_top_n)
-    cp_vs_t_H = _ensure_primary_in_list(top_H_unique, H)
-    cp_vs_h_T = _ensure_primary_in_list(top_T_unique, T)
-
     H_min, H_max = min(H_values), max(H_values)
     T_min, T_max = min(T_values), max(T_values)
-    T_range = range(max(1, T_min), T_max + 1)
-    H_range = range(H_min, H_max + 1)
-
-    k_min = float(config["matching"]["k_wiggle_sweep_min"])
-    k_max = float(config["matching"]["k_wiggle_sweep_max"])
-    k_values = np.logspace(np.log10(k_min), np.log10(k_max), 80)
-
-    ranked_long = sorted(
-        long_rows,
-        key=lambda row: (row.cp, row.occurrences),
-        reverse=True,
-    )
-    ranked_short = sorted(
-        short_rows,
-        key=lambda row: (row.cp, row.occurrences),
-        reverse=True,
-    )
+    contour_step = 5
 
     return {
         "analysis_date": requested_date,
@@ -321,70 +416,23 @@ def analyze_payload(
             "occurrences": primary_result.occurrences,
             "forward_resolved": primary_result.forward_resolved,
         },
-        "price_context": _price_context(df, analysis_date, H_values, H),
+        "price_context": _price_context(df, analysis_date, H_values),
         "analog_events": [analog_to_dict(e) for e in analog_events],
-        "cp_vs_T": {
-            "curves": _curves_for_attr(
-                df,
-                analysis_date,
-                "H",
-                "T",
-                cp_vs_t_H,
-                T_range,
-                k_wiggle,
-                min_occurrences,
-                H,
-            ),
-            "T_range": [T_min, T_max],
-        },
-        "cp_vs_H": {
-            "curves": _curves_for_attr(
-                df,
-                analysis_date,
-                "T",
-                "H",
-                cp_vs_h_T,
-                H_range,
-                k_wiggle,
-                min_occurrences,
-                T,
-            ),
-            "H_range": [H_min, H_max],
-        },
-        "k_wiggle_sweep": {
-            "long": _k_wiggle_side_payload(
-                df,
-                analysis_date,
-                _strategies_for_k_sweep(ranked_long, slice_top_n, H, T),
-                k_values,
-                min_occurrences,
-                H,
-                T,
-            ),
-            "short": _k_wiggle_side_payload(
-                df,
-                analysis_date,
-                _strategies_for_k_sweep(ranked_short, slice_top_n, H, T),
-                k_values,
-                min_occurrences,
-                H,
-                T,
-            ),
-        },
-        "heatmap": {
-            "H_values": H_values,
-            "T_values": T_values,
-            "long": _heatmap_payload(all_results, "long", H_values, T_values, min_occurrences)[
-                "values"
-            ],
-            "short": _heatmap_payload(
-                all_results, "short", H_values, T_values, min_occurrences
-            )["values"],
-            "occurrences": _heatmap_payload(
-                all_results, "long", H_values, T_values, min_occurrences
-            )["occurrences"],
-            "highlight": {"H": H, "T": T},
-        },
+        "contour": _contour_payload(
+            df,
+            analysis_date,
+            H_min,
+            H_max,
+            T_min,
+            T_max,
+            contour_step,
+            k_wiggle,
+            H,
+            T,
+        ),
+        "k_distribution": _k_distribution_payload(
+            df, analysis_date, H, k_wiggle
+        ),
         "top_long": [strategy_to_dict(r) for r in top_long],
         "top_short": [strategy_to_dict(r) for r in top_short],
         "top_strategies": [strategy_to_dict(r) for r in top_strategies],
@@ -456,6 +504,21 @@ def landing_payload(
             }
         )
 
+    rank_h = H if H is not None else 200
+    results_for_h: list[StrategyResult] = []
+    for T in T_values:
+        for side in ("long", "short"):
+            row = compute_cp_for_side(
+                df, analysis_date, rank_h, T, k_wiggle, side
+            )
+            if row is not None and row.occurrences > 0:
+                results_for_h.append(row)
+    top_strategies = sorted(
+        results_for_h,
+        key=lambda row: (row.cp, row.occurrences),
+        reverse=True,
+    )
+
     return {
         "analysis_date": date_text,
         "resolved_date": analysis_date.strftime("%Y-%m-%d"),
@@ -465,6 +528,7 @@ def landing_payload(
         "H_values": H_values,
         "T_values": T_values,
         "by_H": by_h,
+        "top_strategies": [strategy_to_dict(r) for r in top_strategies],
     }
 
 

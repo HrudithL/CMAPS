@@ -1,3 +1,5 @@
+import type { StrategyResult } from "./analysis";
+
 export interface SideCp {
   cp: number;
   hits: number;
@@ -28,4 +30,5 @@ export interface LandingResponse {
   H_values: number[];
   T_values: number[];
   by_H: LandingHBlock[];
+  top_strategies: StrategyResult[];
 }

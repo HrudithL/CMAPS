@@ -74,6 +74,7 @@ def _relation_and_side(price: float, ma: float) -> tuple[str, str]:
 
 
 def _side_mask(prices: pd.Series, ma: pd.Series, side: str) -> pd.Series:
+    # Strict inequality: days where price equals the MA are excluded from both sides.
     if side == "long":
         return prices < ma
     if side == "short":

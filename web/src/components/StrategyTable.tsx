@@ -1,107 +1,80 @@
-import Plot from "react-plotly.js";
+import { CpFormula } from "./CpFormula";
+import { MathInline } from "./MathInline";
+import { formatMaRelation, maRelationColumnHeader } from "../lib/maRelation";
 import type { StrategyResult } from "../types/analysis";
 
 interface Props {
-  title: string;
+  H: number;
+  k: number;
+  relation?: string;
   rows: StrategyResult[];
-  onRowClick: (row: StrategyResult) => void;
+  onRowClick?: (row: StrategyResult) => void;
 }
 
-function sideLabel(side: string) {
-  return side === "long" ? "Long" : side === "short" ? "Short" : side;
+function rowClass(side: string) {
+  if (side === "long") {
+    return "border-l-4 border-l-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/70";
+  }
+  if (side === "short") {
+    return "border-l-4 border-l-rose-500 bg-rose-50/40 hover:bg-rose-50/70";
+  }
+  return "hover:bg-slate-50";
 }
 
-function formatCp(row: StrategyResult) {
-  const aSet = row.side === "long" ? "A_long" : "A_short";
-  const bSet = row.side === "long" ? "B_long" : "B_short";
-  return `${(row.cp * 100).toFixed(1)}% (|${aSet}|/|${bSet}| = ${row.hits}/${row.occurrences})`;
-}
+export function StrategyTable({ H, k, relation, rows, onRowClick }: Props) {
+  const clickable = Boolean(onRowClick);
+  const withCp = rows.filter((row) => row.occurrences > 0);
 
-export function StrategyTable({ title, rows, onRowClick }: Props) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-lg font-semibold text-slate-900">{title}</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+      <div className="mb-3">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Top Strategies at H = {H}
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          k = {k.toFixed(4)}
+          {relation ? ` (${formatMaRelation(relation, H)})` : ""}
+        </p>
+      </div>
+
+      {withCp.length === 0 ? (
+        <p className="text-sm text-slate-500">No strategies with CP at this H.</p>
+      ) : (
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
-              <th className="px-2 py-2">Side</th>
-              <th className="px-2 py-2">H</th>
               <th className="px-2 py-2">T</th>
-              <th className="px-2 py-2">k</th>
-              <th className="px-2 py-2">Relation</th>
-              <th className="px-2 py-2">Hits</th>
-              <th className="px-2 py-2">n</th>
+              <th className="px-2 py-2">{maRelationColumnHeader(H)}</th>
               <th className="px-2 py-2">
-                CP
-                <span className="mt-0.5 block text-[10px] font-normal normal-case text-slate-400">
-                  |A|/|B|
-                </span>
+                <MathInline>{String.raw`CP=\frac{|A|}{|B|}`}</MathInline>
               </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {withCp.map((row) => (
               <tr
                 key={`${row.side}-${row.H}-${row.T}`}
-                className="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
-                onClick={() => onRowClick(row)}
+                className={[
+                  "border-b border-slate-100",
+                  rowClass(row.side),
+                  clickable ? "cursor-pointer" : "",
+                ].join(" ")}
+                onClick={clickable ? () => onRowClick?.(row) : undefined}
               >
+                <td className="px-2 py-2 tabular-nums">{row.T}</td>
+                <td className="px-2 py-2">{formatMaRelation(row.relation, H)}</td>
                 <td className="px-2 py-2">
-                  <span
-                    className={
-                      row.side === "long"
-                        ? "font-medium text-emerald-700"
-                        : "font-medium text-rose-700"
-                    }
-                  >
-                    {sideLabel(row.side)}
-                  </span>
+                  <CpFormula
+                    side={row.side as "long" | "short"}
+                    cp={row.cp}
+                    hits={row.hits}
+                    occurrences={row.occurrences}
+                  />
                 </td>
-                <td className="px-2 py-2">{row.H}</td>
-                <td className="px-2 py-2">{row.T}</td>
-                <td className="px-2 py-2">{row.k_today.toFixed(4)}</td>
-                <td className="px-2 py-2">{row.relation}</td>
-                <td className="px-2 py-2">{row.hits}</td>
-                <td className="px-2 py-2">{row.occurrences}</td>
-                <td className="px-2 py-2 font-medium">{formatCp(row)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      {rows.length > 0 && (
-        <div className="mt-4">
-          <Plot
-            data={[
-              {
-                type: "bar",
-                orientation: "h",
-                y: rows
-                  .map((r) => `${sideLabel(r.side)} · H=${r.H}, T=${r.T}`)
-                  .reverse(),
-                x: rows.map((r) => r.cp * 100).reverse(),
-                marker: {
-                  color: rows
-                    .map((r) => (r.side === "long" ? "#2ca02c" : "#d62728"))
-                    .reverse(),
-                },
-                text: rows.map((r) => `${(r.cp * 100).toFixed(1)}%`).reverse(),
-                textposition: "outside",
-              },
-            ]}
-            layout={{
-              autosize: true,
-              height: Math.max(220, rows.length * 36),
-              margin: { l: 120, r: 40, t: 10, b: 40 },
-              xaxis: { title: "CP (%)", range: [0, 100] },
-            }}
-            config={{ responsive: true, displayModeBar: false }}
-            useResizeHandler
-            className="w-full"
-          />
-        </div>
       )}
     </section>
   );
