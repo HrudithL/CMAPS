@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import Plot from "react-plotly.js";
-import type { Data, Layout, Shape } from "plotly.js";
-import { CP_DIVERGING_SCALE } from "../lib/colorscales";
-import { PLOTLY_PAN_ZOOM_CONFIG, themedLayout } from "../lib/plotlyConfig";
+import { ResponsiveHeatMap } from "@nivo/heatmap";
+import { useTheme } from "../context/ThemeContext";
+import { ChartFrame } from "./charts/ChartFrame";
+import { buildNivoTheme, CP_SURFACE_SEQUENTIAL, NIVO_STATIC } from "../lib/nivoTheme";
+import { downsampleContourGrid, downsampleIndices } from "../lib/chartUtils";
 import type { ContourPayload } from "../types/analysis";
 
 interface Props {
@@ -12,6 +13,14 @@ interface Props {
 }
 
 type SurfaceMode = "cp" | "smoothed_cp";
+
+const HEATMAP_MARGIN = { top: 8, right: 108, bottom: 48, left: 56 };
+
+function sparseHeatmapTicks(values: number[], maxTicks = 8): string[] {
+  if (values.length === 0) return [];
+  const indices = downsampleIndices(values.length, maxTicks);
+  return indices.map((i) => String(values[i]));
+}
 
 function snapToGrid(value: number, grid: number[]): number {
   if (grid.length === 0) return value;
@@ -27,151 +36,131 @@ function snapToGrid(value: number, grid: number[]): number {
   return best;
 }
 
-function boundaryShapes(contour: ContourPayload): Partial<Shape>[] {
-  const tMin = contour.T_values[0];
-  const tMax = contour.T_values[contour.T_values.length - 1];
-  return contour.boundary_h.map((h) => ({
-    type: "line" as const,
-    x0: tMin,
-    x1: tMax,
-    y0: h,
-    y1: h,
-    line: { color: "#78716c", width: 1, dash: "dot" },
-  }));
-}
-
-function gridIndex(grid: number[], value: number): number {
-  const snapped = snapToGrid(value, grid);
-  const idx = grid.indexOf(snapped);
-  return idx >= 0 ? idx : 0;
-}
-
 export function ContourSection({ contour, selectedH, selectedT }: Props) {
   const [mode, setMode] = useState<SurfaceMode>("cp");
+  const { theme } = useTheme();
+  const nivoTheme = useMemo(() => buildNivoTheme(theme), [theme]);
   const { smoothing } = contour;
 
   const snappedH = snapToGrid(selectedH, contour.H_values);
   const snappedT = snapToGrid(selectedT, contour.T_values);
-
   const zMatrix = mode === "cp" ? contour.cp : contour.smoothed_cp;
-  const modeLabel = mode === "cp" ? "Conditional probability" : "Smoothed CP";
+  const modeLabel = mode === "cp" ? "CP" : "Smoothed CP";
 
-  const shapes = useMemo(() => boundaryShapes(contour), [contour]);
-
-  const highlightValue = useMemo(() => {
-    const hi = gridIndex(contour.H_values, snappedH);
-    const ti = gridIndex(contour.T_values, snappedT);
-    return zMatrix[hi]?.[ti] ?? null;
-  }, [contour.H_values, contour.T_values, snappedH, snappedT, zMatrix]);
-
-  const traces = useMemo((): Data[] => {
-    const heatmap: Data = {
-      x: contour.T_values,
-      y: contour.H_values,
-      z: zMatrix,
-      type: "heatmap",
-      colorscale: CP_DIVERGING_SCALE,
-      zmin: 0,
-      zmax: 1,
-      zsmooth: "best",
-      hovertemplate:
-        "H %{y}<br>T %{x}<br>" +
-        (mode === "cp" ? "CP" : "Smoothed CP") +
-        " %{z:.1%}<extra></extra>",
-      colorbar: {
-        title: { text: mode === "cp" ? "CP" : "Smoothed CP" },
-        tickformat: ".0%",
-        len: 0.9,
-        thickness: 14,
-      },
-    };
-
-    const marker: Data = {
-      x: [snappedT],
-      y: [snappedH],
-      type: "scatter",
-      mode: "markers",
-      hovertemplate:
-        `Selected H=${snappedH}, T=${snappedT}` +
-        (highlightValue != null ? `<br>${modeLabel} ${(highlightValue * 100).toFixed(1)}%` : "") +
-        "<extra></extra>",
-      marker: {
-        size: 16,
-        color: "#ffffff",
-        symbol: "circle",
-        line: { width: 3, color: "#1a1917" },
-      },
-    };
-
-    return [heatmap, marker];
-  }, [contour.H_values, contour.T_values, highlightValue, mode, modeLabel, snappedH, snappedT, zMatrix]);
-
-  const layout = useMemo(
-    (): Partial<Layout> =>
-      themedLayout({
-        autosize: true,
-        height: 480,
-        margin: { l: 64, r: 48, t: 12, b: 52 },
-        xaxis: {
-          title: { text: "T (days)" },
-          constrain: "domain",
-        },
-        yaxis: {
-          title: { text: "H (days)" },
-          autorange: "reversed",
-          constrain: "domain",
-        },
-        shapes,
-        showlegend: false,
-        hovermode: "closest",
-      }),
-    [shapes],
+  const grid = useMemo(
+    () => downsampleContourGrid(contour.H_values, contour.T_values, zMatrix),
+    [contour.H_values, contour.T_values, zMatrix],
   );
 
+  const data = useMemo(
+    () =>
+      grid.H_values.map((h, hi) => ({
+        id: String(h),
+        data: grid.T_values.map((t, ti) => ({
+          x: String(t),
+          y: grid.matrix[hi]?.[ti] ?? null,
+        })),
+      })),
+    [grid],
+  );
+
+  const highlightValue = useMemo(() => {
+    const hi = grid.H_values.indexOf(snappedH);
+    const ti = grid.T_values.indexOf(snappedT);
+    if (hi >= 0 && ti >= 0) return grid.matrix[hi]?.[ti] ?? null;
+    const fullHi = contour.H_values.indexOf(snappedH);
+    const fullTi = contour.T_values.indexOf(snappedT);
+    return fullHi >= 0 && fullTi >= 0 ? zMatrix[fullHi]?.[fullTi] : null;
+  }, [contour.H_values, contour.T_values, grid, snappedH, snappedT, zMatrix]);
+
+  const hAxisTicks = useMemo(() => sparseHeatmapTicks(grid.H_values, 8), [grid.H_values]);
+  const tAxisTicks = useMemo(() => sparseHeatmapTicks(grid.T_values, 8), [grid.T_values]);
+
   return (
-    <section className="app-card p-5 sm:p-6">
+    <section className="site-card p-5 sm:p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="font-display text-lg font-medium text-[var(--color-carbon)]">
+          <h2 className="font-display text-lg font-medium text-[var(--color-text-primary)]">
             Strategy surface
           </h2>
-          <p className="mt-1 max-w-2xl text-xs text-[var(--color-slate-ui)]">
-            Active side per H (long below MA, short above). Dotted line = long/short
-            boundary. White dot marks your selected H and T from the analyze bar (snapped
-            to nearest grid cell).
+          <p className="mt-1 max-w-2xl text-xs text-[var(--color-text-muted)]">
+            Orange = low {modeLabel}, blue = high. Selected H={snappedH}, T={snappedT}
+            {highlightValue != null && ` (${(highlightValue * 100).toFixed(1)}%)`}.
+            {grid.downsampled
+              ? ` Grid decimated to ${grid.H_values.length}×${grid.T_values.length} for display (${contour.H_values.length}×${contour.T_values.length} computed).`
+              : null}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
-            Surface
-            <select
-              className="rounded-lg border border-[var(--color-chalk)] bg-[var(--color-fog)] px-3 py-2 text-sm outline-none focus:border-[var(--color-amber)]"
-              value={mode}
-              onChange={(e) => setMode(e.target.value as SurfaceMode)}
-            >
-              <option value="cp">Conditional probability</option>
-              <option value="smoothed_cp">Smoothed CP</option>
-            </select>
-          </label>
-        </div>
+        <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
+          Surface
+          <select
+            className="site-input px-3 py-2 text-sm"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as SurfaceMode)}
+          >
+            <option value="cp">Conditional probability</option>
+            <option value="smoothed_cp">Smoothed CP</option>
+          </select>
+        </label>
       </div>
 
-      <div className="w-full" style={{ height: 480 }}>
-        <Plot
-          key={`${mode}-${smoothing.m}-${smoothing.r}`}
-          data={traces}
-          layout={layout}
-          config={PLOTLY_PAN_ZOOM_CONFIG}
-          useResizeHandler
-          className="h-full w-full"
-          style={{ width: "100%", height: "100%" }}
+      <ChartFrame height={500}>
+        <ResponsiveHeatMap
+          key={`${theme}-${mode}`}
+          data={data}
+          theme={nivoTheme}
+          {...NIVO_STATIC}
+          margin={HEATMAP_MARGIN}
+          valueFormat=">-.0%"
+          enableLabels={false}
+          isInteractive={false}
+          axisTop={null}
+          axisRight={null}
+          axisLeft={{
+            tickSize: 0,
+            tickPadding: 8,
+            legend: "H (days)",
+            legendPosition: "middle",
+            legendOffset: -48,
+            format: (v) => String(v),
+            tickValues: hAxisTicks,
+          }}
+          axisBottom={{
+            tickSize: 0,
+            tickPadding: 8,
+            legend: "T (days)",
+            legendPosition: "middle",
+            legendOffset: 36,
+            format: (v) => String(v),
+            tickValues: tAxisTicks,
+          }}
+          colors={CP_SURFACE_SEQUENTIAL}
+          emptyColor="var(--color-border)"
+          borderWidth={1}
+          borderColor="var(--color-card-inner)"
+          borderRadius={2}
+          opacity={1}
+          legends={[
+            {
+              anchor: "right",
+              translateX: 52,
+              translateY: 0,
+              length: 140,
+              thickness: 10,
+              direction: "column",
+              tickPosition: "after",
+              tickSize: 2,
+              tickSpacing: 4,
+              tickFormat: ">-.0%",
+            },
+          ]}
         />
-      </div>
-      <p className="mt-2 text-xs text-[var(--color-slate-ui)]">
-        Drag to pan, scroll to zoom, double-click to reset. Using m = {smoothing.m} (default{" "}
-        {smoothing.m_default}), r = {(smoothing.r * 100).toFixed(1)}% (default{" "}
-        {(smoothing.r_default * 100).toFixed(1)}%).
+      </ChartFrame>
+
+      <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+        Smoothing: m = {smoothing.m} (default {smoothing.m_default}), r ={" "}
+        {(smoothing.r * 100).toFixed(1)}% (default {(smoothing.r_default * 100).toFixed(1)}%).
       </p>
     </section>
   );

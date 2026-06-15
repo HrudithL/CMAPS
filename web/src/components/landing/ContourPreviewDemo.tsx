@@ -1,48 +1,64 @@
-/** Stylized contour heatmap preview. */
-export function ContourPreviewDemo() {
-  const cols = 12;
-  const rows = 8;
-  const cells: number[][] = [];
-  for (let r = 0; r < rows; r++) {
-    const row: number[] = [];
-    for (let c = 0; c < cols; c++) {
-      const dist = Math.hypot(c - 5, r - 3.5);
-      row.push(Math.max(0, 1 - dist / 5));
-    }
-    cells.push(row);
-  }
+import { useMemo } from "react";
+import { ResponsiveHeatMap } from "@nivo/heatmap";
+import { buildNivoTheme, CP_SURFACE_SEQUENTIAL, NIVO_STATIC } from "../../lib/nivoTheme";
+import { useTheme } from "../../context/ThemeContext";
+import type { ContourSnippet } from "../../types/landing";
 
-  function cellColor(v: number) {
-    if (v < 0.3) return `rgba(244, 63, 94, ${0.3 + v})`;
-    if (v < 0.6) return `rgba(245, 158, 11, ${0.3 + v * 0.5})`;
-    return `rgba(16, 185, 129, ${0.3 + v * 0.5})`;
-  }
+interface Props {
+  snippet: ContourSnippet;
+}
+
+export function ContourPreviewDemo({ snippet }: Props) {
+  const { theme } = useTheme();
+  const nivoTheme = useMemo(() => buildNivoTheme(theme), [theme]);
+  const { H_values, T_values, cp } = snippet;
+
+  const data = useMemo(
+    () =>
+      H_values.map((h, hi) => ({
+        id: String(h),
+        data: T_values.map((t, ti) => ({
+          x: String(t),
+          y: cp[hi]?.[ti] ?? null,
+        })),
+      })),
+    [H_values, T_values, cp],
+  );
 
   return (
-    <div className="flex h-full flex-col p-2">
-      <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-[var(--color-ash)]">
-        CP across H × T
+    <div className="flex h-full flex-col p-1">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-muted)]">
+        CP surface · H × T
       </p>
-      <div
-        className="grid flex-1 gap-0.5 rounded-lg overflow-hidden"
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-      >
-        {cells.flat().map((v, i) => (
-          <div
-            key={i}
-            className="aspect-square rounded-sm"
-            style={{ backgroundColor: cellColor(v) }}
-          />
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between font-mono text-[9px] text-[var(--color-ash)]">
-        <span>low CP</span>
-        <div className="flex h-1.5 w-24 overflow-hidden rounded-full">
-          <div className="flex-1 bg-rose-500/60" />
-          <div className="flex-1 bg-amber-500/60" />
-          <div className="flex-1 bg-emerald-500/60" />
-        </div>
-        <span>high CP</span>
+      <div className="min-h-0 flex-1">
+        <ResponsiveHeatMap
+          key={theme}
+          data={data}
+          theme={nivoTheme}
+          {...NIVO_STATIC}
+          margin={{ top: 4, right: 4, bottom: 28, left: 36 }}
+          valueFormat=">-.0%"
+          enableLabels={false}
+          isInteractive={false}
+          axisTop={null}
+          axisRight={null}
+          axisLeft={{
+            tickSize: 0,
+            tickPadding: 6,
+            format: (v) => `H${v}`,
+          }}
+          axisBottom={{
+            tickSize: 0,
+            tickPadding: 6,
+            format: (v) => `T${v}`,
+          }}
+          colors={CP_SURFACE_SEQUENTIAL}
+          emptyColor="var(--color-border)"
+          borderWidth={2}
+          borderColor="var(--color-card-inner)"
+          opacity={1}
+          borderRadius={3}
+        />
       </div>
     </div>
   );

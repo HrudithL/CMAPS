@@ -1,7 +1,7 @@
 [project]
-name = "cpmab-api"
+name = "cmaps-api"
 version = "1.0.0"
-description = "Conditional Probability with Moving Averages on Bitcoin — API"
+description = "Conditional Moving-Average Probabilistic Similarity on Bitcoin — API"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",

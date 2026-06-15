@@ -10,8 +10,10 @@ interface Props {
   onAnalyze: (patch?: Partial<AnalysisParams>) => void;
 }
 
-const inputClass =
-  "rounded-lg border border-[var(--color-chalk)] bg-[var(--color-fog)] px-3 py-2 text-sm text-[var(--color-carbon)] outline-none focus:border-[var(--color-amber)]";
+const PREFERRED_H = [65, 200, 365];
+const PREFERRED_T = [90, 120, 180, 270, 365];
+
+const inputClass = "site-input px-3 py-2 text-sm";
 
 export function ControlPanel({
   meta,
@@ -21,32 +23,41 @@ export function ControlPanel({
   onParamsChange,
   onAnalyze,
 }: Props) {
+  const hOptions = [
+    ...PREFERRED_H.filter((h) => meta.grid.H_days.includes(h)),
+    ...meta.grid.H_days.filter((h) => !PREFERRED_H.includes(h)),
+  ];
+  const tOptions = [
+    ...PREFERRED_T.filter((t) => meta.grid.T_days.includes(t)),
+    ...meta.grid.T_days.filter((t) => !PREFERRED_T.includes(t)),
+  ];
+
   const sideClass =
     data?.side === "long"
-      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+      ? "border-[var(--color-emerald)]/40 bg-[var(--color-emerald)]/10 text-[var(--color-emerald)]"
       : data?.side === "short"
-        ? "bg-rose-50 text-rose-800 border-rose-200"
-        : "bg-[var(--color-fog)] text-[var(--color-graphite)] border-[var(--color-chalk)]";
+        ? "border-[var(--color-rose)]/40 bg-[var(--color-rose)]/10 text-[var(--color-rose)]"
+        : "border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-2 sm:px-6">
-      <div className="app-card p-4 sm:p-5">
+    <div className="relative mx-auto max-w-6xl px-4 pt-4 sm:px-6">
+      <div className="site-card p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-amber-dim)]">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-amber)]">
               Plots
             </p>
-            <h1 className="font-display text-xl font-medium text-[var(--color-carbon)]">
+            <h1 className="font-display text-xl font-medium text-[var(--color-text-primary)]">
               Interactive explorer
             </h1>
           </div>
-          <p className="font-mono text-xs text-[var(--color-slate-ui)]">
+          <p className="font-mono text-xs text-[var(--color-text-muted)]">
             Data through {meta.date_max}
           </p>
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
             Analysis date
             <input
               type="date"
@@ -58,31 +69,37 @@ export function ControlPanel({
             />
           </label>
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
             H (days)
-            <input
-              type="number"
-              min={1}
-              max={2000}
-              className={`w-24 ${inputClass}`}
+            <select
+              className={`w-28 ${inputClass}`}
               value={params.H}
               onChange={(e) => onParamsChange({ H: Number(e.target.value) })}
-            />
+            >
+              {hOptions.map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
           </label>
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
             T (days)
-            <input
-              type="number"
-              min={1}
-              max={2000}
-              className={`w-24 ${inputClass}`}
+            <select
+              className={`w-28 ${inputClass}`}
               value={params.T}
               onChange={(e) => onParamsChange({ T: Number(e.target.value) })}
-            />
+            >
+              {tOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
           </label>
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
             m
             <input
               type="number"
@@ -99,7 +116,7 @@ export function ControlPanel({
             />
           </label>
 
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
             r
             <input
               type="number"
@@ -117,7 +134,7 @@ export function ControlPanel({
             />
           </label>
 
-          <label className="flex min-w-[180px] flex-col gap-1.5 text-xs font-medium text-[var(--color-slate-ui)]">
+          <label className="flex min-w-[180px] flex-col gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
             k wiggle ±{params.k_wiggle.toFixed(3)}
             <input
               type="range"
@@ -134,7 +151,7 @@ export function ControlPanel({
 
           <button
             type="button"
-            className="app-btn-primary px-5 py-2.5 text-sm disabled:opacity-50"
+            className="site-btn-primary px-5 py-2.5 text-sm disabled:opacity-50"
             onClick={() => onAnalyze()}
             disabled={loading}
           >
@@ -143,27 +160,27 @@ export function ControlPanel({
         </div>
 
         {data && (
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--color-chalk)] pt-4 text-sm">
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--color-border)] pt-4 text-sm">
             <span
               className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${sideClass}`}
             >
               {data.side}
             </span>
-            <span className="text-[var(--color-graphite)]">
+            <span className="text-[var(--color-text-secondary)]">
               k = {data.k_today.toFixed(4)} ({formatMaRelation(data.relation, params.H)})
             </span>
-            <span className="font-medium text-[var(--color-carbon)]">
+            <span className="font-medium text-[var(--color-text-primary)]">
               CP {(data.primary.cp * 100).toFixed(1)}% ({data.primary.hits}/
               {data.primary.occurrences})
             </span>
-            <span className="text-[var(--color-graphite)]">
+            <span className="text-[var(--color-text-secondary)]">
               Smoothed {(data.primary.smoothed_cp * 100).toFixed(1)}%
             </span>
-            <span className="font-mono text-[var(--color-graphite)]">
+            <span className="font-mono text-[var(--color-text-secondary)]">
               BTC ${data.price_today.toLocaleString()}
             </span>
             {data.resolved_date !== data.analysis_date && (
-              <span className="text-xs text-amber-700">
+              <span className="text-xs text-[var(--color-amber)]">
                 Resolved to {data.resolved_date}
               </span>
             )}

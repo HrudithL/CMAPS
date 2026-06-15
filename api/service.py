@@ -712,6 +712,142 @@ def landing_payload(
     }
 
 
+PREVIEW_H_VALUES = [65, 200, 365]
+PREVIEW_T = 90
+PREVIEW_CHART_H = 200
+PREVIEW_DAYS = 92
+
+
+def _contour_snippet(
+    contour: dict,
+    center_h: int,
+    center_t: int,
+    h_span: int = 5,
+    t_span: int = 6,
+) -> dict:
+    h_vals = contour["H_values"]
+    t_vals = contour["T_values"]
+    hi = min(range(len(h_vals)), key=lambda i: abs(h_vals[i] - center_h))
+    ti = min(range(len(t_vals)), key=lambda i: abs(t_vals[i] - center_t))
+    h0 = max(0, hi - h_span)
+    h1 = min(len(h_vals), hi + h_span + 1)
+    t0 = max(0, ti - t_span)
+    t1 = min(len(t_vals), ti + t_span + 1)
+    cp_matrix = contour["cp"]
+    smoothed_matrix = contour.get("smoothed_cp")
+    snippet = {
+        "H_values": h_vals[h0:h1],
+        "T_values": t_vals[t0:t1],
+        "cp": [row[t0:t1] for row in cp_matrix[h0:h1]],
+        "highlight": {"H": center_h, "T": center_t},
+    }
+    if smoothed_matrix is not None:
+        snippet["smoothed_cp"] = [row[t0:t1] for row in smoothed_matrix[h0:h1]]
+    return snippet
+
+
+def landing_preview_payload(
+    date_text: str | None = None,
+    k_wiggle: float | None = None,
+) -> dict:
+    config = get_config()
+    df = get_dataframe()
+    if k_wiggle is None:
+        k_wiggle = float(config["matching"]["k_wiggle"])
+    if date_text is None:
+        date_text = df.index.max().strftime("%Y-%m-%d")
+
+    analysis_date = resolve_analysis_date(df, date_text)
+    prices = df["Price"]
+    price_today = round(float(prices.loc[analysis_date]), 2)
+
+    end_loc = df.index.get_loc(analysis_date)
+    if isinstance(end_loc, slice):
+        end_loc = end_loc.stop - 1
+    start_loc = max(0, int(end_loc) - PREVIEW_DAYS + 1)
+    slice_df = df.iloc[start_loc : int(end_loc) + 1]
+    ma_series = prices.rolling(window=PREVIEW_CHART_H).mean()
+    ma_slice = ma_series.iloc[start_loc : int(end_loc) + 1]
+
+    chart_h = PREVIEW_CHART_H
+    ma_today_val = ma_series.loc[analysis_date]
+    relation = (
+        "below"
+        if price_today < float(ma_today_val)
+        else "above"
+        if price_today > float(ma_today_val)
+        else "at"
+    )
+
+    ma_bars: list[dict] = []
+    for h in PREVIEW_H_VALUES:
+        side = _side_for_h(df, analysis_date, h)
+        if side is None or side == "neutral":
+            continue
+        row = compute_cp_for_side(df, analysis_date, h, PREVIEW_T, k_wiggle, side)
+        h_relation = "below" if side == "long" else "above"
+        hits = row.hits if row else 0
+        occ = row.occurrences if row else 0
+        ma_bars.append(
+            {
+                "H": h,
+                "T": PREVIEW_T,
+                "side": side,
+                "relation": h_relation,
+                "cp": round(row.cp, 4) if row else 0.0,
+                "hits": hits,
+                "occurrences": occ,
+            }
+        )
+
+    analyze = analyze_payload(
+        date_text=date_text,
+        H=PREVIEW_CHART_H,
+        T=PREVIEW_T,
+        k_wiggle=k_wiggle,
+        min_occurrences=int(config["filtering"]["min_occurrences"]),
+        top_n=int(config["filtering"]["top_n"]),
+        smoothing_m=None,
+        smoothing_r=None,
+    )
+    smooth_m = float(analyze["smoothing"]["m"])
+    smooth_r = float(analyze["smoothing"]["r"])
+    for bar in ma_bars:
+        bar["smoothed_cp"] = round(
+            smoothed_cp(bar["hits"], bar["occurrences"], smooth_m, smooth_r), 4
+        )
+
+    _, analog_events = compute_analog_events(
+        df, analysis_date, PREVIEW_CHART_H, PREVIEW_T, k_wiggle
+    )
+
+    return {
+        "analysis_date": date_text,
+        "resolved_date": analysis_date.strftime("%Y-%m-%d"),
+        "price_today": price_today,
+        "k_wiggle": k_wiggle,
+        "chart_H": chart_h,
+        "default_H": 200,
+        "default_T": PREVIEW_T,
+        "relation": relation,
+        "price_preview": {
+            "dates": slice_df.index.strftime("%Y-%m-%d").tolist(),
+            "price": slice_df["Price"].round(2).tolist(),
+            "ma": [
+                round(float(v), 2) if not pd.isna(v) else None
+                for v in ma_slice.values
+            ],
+        },
+        "ma_bars": ma_bars,
+        "contour_snippet": _contour_snippet(
+            analyze["contour"], PREVIEW_CHART_H, PREVIEW_T
+        ),
+        "primary": analyze["primary"],
+        "smoothing": analyze["smoothing"],
+        "analog_dates": [e.date for e in analog_events[:12]],
+    }
+
+
 def strategy_detail_payload(
     date_text: str,
     H: int,

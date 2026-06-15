@@ -1,18 +1,6 @@
-interface Props {
-  variant?: "dark" | "light";
-}
-
-export function AppFooter({ variant = "light" }: Props) {
-  const isDark = variant === "dark";
+export function AppFooter() {
   return (
-    <footer
-      className={[
-        "py-8 text-center text-xs",
-        isDark
-          ? "border-t border-[var(--color-rim)] text-[var(--color-ash)]"
-          : "text-[var(--color-slate-ui)]",
-      ].join(" ")}
-    >
+    <footer className="border-t border-[var(--color-border)] py-8 text-center text-xs text-[var(--color-text-muted)]">
       Historical analog analysis only. Not financial advice.
     </footer>
   );

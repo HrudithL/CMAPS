@@ -1,4 +1,4 @@
-"""FastAPI application for CPMAB dashboard."""
+"""FastAPI application for CMAPS dashboard."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from service import (
     get_dataframe,
     invalidate_data_cache,
     landing_payload,
+    landing_preview_payload,
     meta_payload,
     strategy_detail_payload,
     warm_ma_cache,
@@ -75,7 +76,7 @@ async def lifespan(_app: FastAPI):
     detail_cache.clear()
 
 
-app = FastAPI(title="CPMAB API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="CMAPS API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -103,6 +104,21 @@ def landing(
 
     try:
         return landing_payload(date_text=date, H=H, k_wiggle=k_wiggle)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/landing/preview")
+def landing_preview(
+    date: str | None = Query(default=None),
+    k_wiggle: float | None = Query(default=None, gt=0, le=1),
+):
+    config = get_config()
+    if k_wiggle is None:
+        k_wiggle = float(config["matching"]["k_wiggle"])
+
+    try:
+        return landing_preview_payload(date_text=date, k_wiggle=k_wiggle)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

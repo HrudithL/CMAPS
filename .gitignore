@@ -1,23 +1,51 @@
 # Python
 __pycache__/
 *.py[cod]
+*.egg-info/
 .venv/
 venv/
 .env
-*.egg-info/
+.env.*
+!.env.example
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.cover
 
-# Node
+# Node / frontend build
 node_modules/
 dist/
+dist-ssr/
 .vite/
+*.local
+web/dist/
+
+# LaTeX / method paper (local only — not published)
+paper/
 
 # IDE / OS
 .idea/
 .vscode/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Deploy / platform (local CLI state)
+.vercel/
+.render/
+
+# Playwright (local smoke / screenshots)
+playwright-report/
+test-results/
+blob-report/

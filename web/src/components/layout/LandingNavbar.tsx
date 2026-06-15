@@ -15,7 +15,7 @@ export function LandingNavbar() {
             ₿
           </span>
           <span className="font-display text-sm font-medium tracking-tight text-[var(--color-snow)] sm:text-base">
-            CPMAB
+            CMAPS
           </span>
         </Link>
 

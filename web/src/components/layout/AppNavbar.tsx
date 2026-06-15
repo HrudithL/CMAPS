@@ -14,7 +14,7 @@ export function AppNavbar() {
           to="/"
           className="font-display text-base font-medium tracking-tight text-[var(--color-carbon)] hover:opacity-80"
         >
-          CPMAB
+          CMAPS
         </NavLink>
 
         <nav className="flex flex-wrap items-center gap-1">

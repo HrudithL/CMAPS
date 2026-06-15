@@ -1,7 +1,7 @@
 # Conditional Probability Dashboard — Product Specification
 
 **Project:** `cond_prob_website`  
-**Product name:** Conditional Probability with Moving Averages on Bitcoin (**CPMAB**)  
+**Product name:** Conditional Moving-Average Probabilistic Similarity (**CMAPS**)  
 **Status:** Draft v1 (decisions locked below)  
 **Source analysis:** `Bitcoin_mstr/conditional_probability/pred_info/`  
 **Reference report:** `pred_info_20240115.pdf`
@@ -582,7 +582,7 @@ services:
 
 | Topic | Decision |
 |-------|----------|
-| Product name | **CPMAB** — Conditional Probability with Moving Averages on Bitcoin |
+| Product name | **CMAPS** — Conditional Moving-Average Probabilistic Similarity on Bitcoin |
 | Price chart MAs | Primary H only by default; **toggle** to show all config H MAs |
 | GitHub repo | User creates public repo separately; local folder stays `cond_prob_website` |
 | Mobile layout | CP vs T and CP vs H **stacked** (separate charts) |

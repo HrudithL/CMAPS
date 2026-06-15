@@ -6,7 +6,7 @@ import { PlotsPage } from "./pages/PlotsPage";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || undefined}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/overview" element={<OverviewPage />} />

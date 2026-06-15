@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import Plot from "react-plotly.js";
+import { ResponsiveScatterPlot } from "@nivo/scatterplot";
 import { fetchStrategyDetail } from "../api/client";
+import { buildNivoTheme, CHART_PALETTE, NIVO_MOTION } from "../lib/nivoTheme";
+import { useTheme } from "../context/ThemeContext";
+import { ChartFrame } from "./charts/ChartFrame";
 import type {
   AnalysisParams,
   AnalogEvent,
@@ -17,6 +20,8 @@ interface Props {
 type SortKey = keyof AnalogEvent;
 
 export function StrategyInspector({ params, strategy, onClose }: Props) {
+  const { theme } = useTheme();
+  const nivoTheme = useMemo(() => buildNivoTheme(theme), [theme]);
   const [detail, setDetail] = useState<StrategyDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,80 +79,112 @@ export function StrategyInspector({ params, strategy, onClose }: Props) {
     }
   };
 
+  const scatterData = useMemo(() => {
+    if (!detail) return [];
+    return [
+      {
+        id: "analogs",
+        data: detail.analog_events.map((e) => ({
+          x: e.date,
+          y: e.price,
+          hit: e.hit,
+          return_pct: e.return_pct,
+        })),
+      },
+    ];
+  }, [detail]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl bg-white shadow-xl">
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card-bg)] shadow-2xl">
+        <div className="sticky top-0 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-card-bg)] px-4 py-3">
           <div>
-            <h2 className="text-lg font-semibold capitalize text-slate-900">
+            <h2 className="font-display text-lg font-medium capitalize text-[var(--color-text-primary)]">
               {strategy.side} · H={strategy.H} · T={strategy.T} · CP{" "}
-              {(strategy.cp * 100).toFixed(1)}% ({strategy.hits}/
-              {strategy.occurrences}) · k±{params.k_wiggle}
+              {(strategy.cp * 100).toFixed(1)}% ({strategy.hits}/{strategy.occurrences}) · k±
+              {params.k_wiggle}
             </h2>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
-              className="rounded border border-slate-300 px-3 py-1 text-sm"
+              className="site-btn-outline px-3 py-1 text-sm"
               onClick={exportCsv}
               disabled={!detail}
             >
               Export CSV
             </button>
-            <button
-              type="button"
-              className="rounded bg-slate-900 px-3 py-1 text-sm text-white"
-              onClick={onClose}
-            >
+            <button type="button" className="site-btn-primary px-3 py-1 text-sm" onClick={onClose}>
               Close
             </button>
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
-          {loading && <p className="text-sm text-slate-500">Loading…</p>}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="space-y-4 p-4">
+          {loading && <p className="text-sm text-[var(--color-text-muted)]">Loading…</p>}
+          {error && <p className="text-sm text-[var(--color-rose)]">{error}</p>}
           {detail?.forward_unresolved && (
-            <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Forward window extends beyond latest data; CP for today is
-              historical analogs only.
+            <p className="rounded border border-[var(--color-amber)]/30 bg-[var(--color-amber)]/10 px-3 py-2 text-sm text-[var(--color-amber-glow)]">
+              Forward window extends beyond latest data; CP for today is historical analogs only.
             </p>
           )}
 
           {detail && (
             <>
-              <Plot
-                data={[
-                  {
-                    x: detail.analog_events.map((e) => e.date),
-                    y: detail.analog_events.map((e) => e.price),
-                    type: "scatter",
-                    mode: "markers",
-                    marker: {
-                      size: 10,
-                      color: detail.analog_events.map((e) =>
-                        e.hit ? "#2ca02c" : "#d62728",
-                      ),
-                    },
-                    text: detail.analog_events.map(
-                      (e) =>
-                        `${e.date} · ${e.hit ? "Hit" : "Miss"} · ${e.return_pct}%`,
-                    ),
-                    hoverinfo: "text",
-                  },
-                ]}
-                layout={{
-                  height: 280,
-                  margin: { l: 50, r: 20, t: 10, b: 50 },
-                  title: "Analog dates",
-                }}
-                config={{ displayModeBar: false, responsive: true }}
-                useResizeHandler
-                className="w-full"
-              />
+              <ChartFrame height={280}>
+                <ResponsiveScatterPlot
+                  key={theme}
+                  data={scatterData}
+                  theme={nivoTheme}
+                  {...NIVO_MOTION}
+                  margin={{ top: 16, right: 16, bottom: 56, left: 64 }}
+                  xScale={{ type: "point" }}
+                  yScale={{ type: "linear", min: "auto", max: "auto" }}
+                  axisBottom={{
+                    tickSize: 0,
+                    tickPadding: 8,
+                    tickRotation: -35,
+                  }}
+                  axisLeft={{
+                    tickSize: 0,
+                    tickPadding: 8,
+                    format: (v) => `$${Math.round(Number(v) / 1000)}k`,
+                  }}
+                  colors={[CHART_PALETTE.indigo]}
+                  nodeSize={11}
+                  nodeComponent={({ node }) => {
+                    const hit = (node.data as { hit?: boolean }).hit;
+                    return (
+                      <g transform={`translate(${node.x},${node.y})`}>
+                        <circle
+                          r={9}
+                          fill={hit ? CHART_PALETTE.hit : CHART_PALETTE.miss}
+                          fillOpacity={0.85}
+                          stroke="#fff"
+                          strokeWidth={1.5}
+                        />
+                      </g>
+                    );
+                  }}
+                  tooltip={({ node }) => {
+                    const d = node.data as {
+                      x: string;
+                      y: number;
+                      hit: boolean;
+                      return_pct: number;
+                    };
+                    return (
+                      <div className="font-mono text-[11px]">
+                        {d.x}
+                        <br />${d.y.toLocaleString()} · {d.hit ? "Hit" : "Miss"} · {d.return_pct}%
+                      </div>
+                    );
+                  }}
+                />
+              </ChartFrame>
 
               {detail.stats.hits && (
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-[var(--color-text-secondary)]">
                   Hits: mean return {detail.stats.hits.mean}% (min{" "}
                   {detail.stats.hits.min}%, max {detail.stats.hits.max}%)
                   {detail.stats.misses &&
@@ -158,7 +195,7 @@ export function StrategyInspector({ params, strategy, onClose }: Props) {
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="border-b text-left text-xs uppercase text-slate-500">
+                    <tr className="border-b border-[var(--color-border)] text-left text-xs uppercase text-[var(--color-text-muted)]">
                       {(
                         [
                           ["date", "Date"],
@@ -184,7 +221,7 @@ export function StrategyInspector({ params, strategy, onClose }: Props) {
                   </thead>
                   <tbody>
                     {sortedEvents.map((e) => (
-                      <tr key={e.date} className="border-b border-slate-100">
+                      <tr key={e.date} className="border-b border-[var(--color-border)]">
                         <td className="px-2 py-1">{e.date}</td>
                         <td className="px-2 py-1">${e.price.toLocaleString()}</td>
                         <td className="px-2 py-1">${e.ma.toLocaleString()}</td>
@@ -195,7 +232,7 @@ export function StrategyInspector({ params, strategy, onClose }: Props) {
                         </td>
                         <td className="px-2 py-1">{e.return_pct}%</td>
                         <td
-                          className={`px-2 py-1 font-medium ${e.hit ? "text-emerald-700" : "text-red-700"}`}
+                          className={`px-2 py-1 font-medium ${e.hit ? "text-[var(--color-emerald)]" : "text-[var(--color-rose)]"}`}
                         >
                           {e.hit ? "Hit" : "Miss"}
                         </td>

@@ -4,7 +4,7 @@ import type {
   MetaResponse,
   StrategyDetailResponse,
 } from "../types/analysis";
-import type { LandingResponse } from "../types/landing";
+import type { LandingPreviewResponse, LandingResponse } from "../types/landing";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -30,6 +30,15 @@ export function fetchLanding(params?: {
   if (params?.H !== undefined) query.set("H", String(params.H));
   const suffix = query.toString() ? `?${query}` : "";
   return request<LandingResponse>(`/api/landing${suffix}`);
+}
+
+export function fetchLandingPreview(params?: {
+  date?: string;
+}): Promise<LandingPreviewResponse> {
+  const query = new URLSearchParams();
+  if (params?.date) query.set("date", params.date);
+  const suffix = query.toString() ? `?${query}` : "";
+  return request<LandingPreviewResponse>(`/api/landing/preview${suffix}`);
 }
 
 export function fetchAnalyze(params: AnalysisParams): Promise<AnalyzeResponse> {

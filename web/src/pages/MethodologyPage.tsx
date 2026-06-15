@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchMeta } from "../api/client";
 import { MethodologyContent } from "../components/MethodologyContent";
 import { AppFooter } from "../components/layout/AppFooter";
-import { AppNavbar } from "../components/layout/AppNavbar";
+import { SiteNavbar } from "../components/layout/SiteNavbar";
 
 export function MethodologyPage() {
   const [epsilon, setEpsilon] = useState(0.01);
@@ -15,12 +15,13 @@ export function MethodologyPage() {
   }, []);
 
   return (
-    <div className="app-canvas min-h-screen">
-      <AppNavbar />
+    <div className="site-canvas">
+      <div className="site-grid-bg pointer-events-none fixed inset-0" aria-hidden />
+      <SiteNavbar />
 
-      <main className="mx-auto max-w-3xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
+      <main className="relative mx-auto max-w-3xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
         {error && (
-          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div className="mb-6 rounded-xl border border-[var(--color-rose)]/40 bg-[var(--color-rose)]/10 px-4 py-3 text-sm text-[var(--color-rose)]">
             {error}
           </div>
         )}

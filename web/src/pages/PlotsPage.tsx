@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { ControlPanel } from "../components/ControlPanel";
 import { AppFooter } from "../components/layout/AppFooter";
-import { AppNavbar } from "../components/layout/AppNavbar";
+import { SiteNavbar } from "../components/layout/SiteNavbar";
 import { StrategyInspector } from "../components/StrategyInspector";
 import { StrategyTable } from "../components/StrategyTable";
 import { useAnalysis } from "../hooks/useAnalysis";
@@ -19,7 +19,7 @@ const KDistributionChart = lazy(() =>
 
 function ChartFallback() {
   return (
-    <div className="app-card flex h-[440px] items-center justify-center text-sm text-[var(--color-slate-ui)]">
+    <div className="site-card flex h-[440px] items-center justify-center text-sm text-[var(--color-text-muted)]">
       Rendering chart…
     </div>
   );
@@ -40,7 +40,7 @@ export function PlotsPage() {
 
   if (!meta || !params) {
     return (
-      <div className="app-canvas flex min-h-screen items-center justify-center text-[var(--color-graphite)]">
+      <div className="site-canvas flex min-h-screen items-center justify-center text-[var(--color-text-secondary)]">
         Loading dashboard…
       </div>
     );
@@ -49,8 +49,9 @@ export function PlotsPage() {
   const openStrategy = (row: StrategyResult) => setInspector(row);
 
   return (
-    <div className="app-canvas min-h-screen">
-      <AppNavbar />
+    <div className="site-canvas">
+      <div className="site-grid-bg pointer-events-none fixed inset-0" aria-hidden />
+      <SiteNavbar />
 
       <ControlPanel
         meta={meta}
@@ -61,20 +62,20 @@ export function PlotsPage() {
         onAnalyze={analyzeNow}
       />
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <main className="relative mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
         {error && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div className="rounded-xl border border-[var(--color-rose)]/40 bg-[var(--color-rose)]/10 px-4 py-3 text-sm text-[var(--color-rose)]">
             {error}
           </div>
         )}
 
         {loading && !data && (
-          <p className="text-center text-sm text-[var(--color-slate-ui)]">Running analysis…</p>
+          <p className="text-center text-sm text-[var(--color-text-muted)]">Running analysis…</p>
         )}
 
         {!loading && !data && !error && (
-          <div className="app-card py-16 text-center">
-            <p className="text-sm text-[var(--color-slate-ui)]">
+          <div className="site-card py-16 text-center">
+            <p className="text-sm text-[var(--color-text-muted)]">
               Set parameters above and click Analyze to load charts.
             </p>
           </div>
