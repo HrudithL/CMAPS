@@ -1,0 +1,17 @@
+\section{Parameter-surface diagnostics}
+\label{sec:diagnostics}
+
+CMAPS is used by sweeping $(H,T,\eps)$ on a discrete grid.
+The analog-matching idea is classical---select past states resembling the present, then read off outcomes \cite{lorenz1969empirical}---but here the match rule is explicit and every analog is listed.
+
+\paragraph{Heatmaps and slices.}
+For fixed $\eps$, evaluate $\widehat{\CP}(H,T)$ on the configured grid (e.g.\ $H \in \{65,\ldots,1000\}$, $T \in \{90,\ldots,1095\}$).
+Cells show $\widehat{\CP}$ and $n$; fixing $H$ and plotting versus $T$ (Figure~\ref{fig:cp-vs-t}) is one slice through this surface.
+
+\paragraph{Tolerance sweep.}
+Shrinking $\eps$ tightens the state match and lowers $n$; widening $\eps$ does the reverse.
+A log-spaced sweep shows whether a headline $\widehat{\CP}$ is stable or an artifact of tolerance choice.
+
+\paragraph{Ranking and reproducibility.}
+Strategies rank by $\widehat{\CP}$ or $\widehat{\CP}_{\mathrm{smooth}}$, with optional minimum $n$.
+The reference implementation is deterministic: the same $(\tauan,H,T,\eps)$ reproduces the same ledger, with $\sum Y_{t,T} = h$ and $|B|=n$ on golden test cases.

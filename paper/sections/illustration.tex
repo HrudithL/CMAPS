@@ -1,0 +1,50 @@
+\section{Illustrative application}
+\label{sec:illustration}
+
+We walk through one analysis using daily BTC/USD closes (July 2010 onward) and reference parameters from the CMAPS configuration grid.
+
+\subsection{Setup}
+
+Take analysis date $\tauan = \text{2024-01-15}$, $H=200$, $T=90$, and $\eps=0.01$.
+At this date, price sits above the 200-day average, so $\text{side}(\tauan)=\text{short}$ and $k_{\tauan}(200) > 1$.
+
+Applying \eqref{eq:match}--\eqref{eq:cp} yields $n=88$ short-side analogs with valid 90-day forward prices and $h=16$ directional successes (price lower 90 trading days later).
+The raw estimate is
+\[
+  \widehat{\CP} = \frac{16}{88} \approx 0.182.
+\]
+Interpretation for an analyst: among past days when BTC was above its 200-day MA \emph{and} had nearly the same $k$ ratio as on 2024-01-15, about 18\% saw a lower price 90 trading days later; the remaining 82\% did not.
+
+Table~\ref{tab:example} summarizes the headline quantities.
+The full analog ledger contains all 88 dates; the dashboard implementation exposes each row for audit.
+
+\begin{table}[ht]
+  \centering
+  \caption{Illustrative CMAPS output at $\tauan = \text{2024-01-15}$, $H=200$, $T=90$, $\eps=0.01$.}
+  \label{tab:example}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    Quantity & Value \\
+    \midrule
+    Side & short (price above $\MA_{200}$) \\
+    Analog count $n$ & 88 \\
+    Hits $h$ & 16 \\
+    $\widehat{\CP} = h/n$ & 0.182 (\SI{18.2}{\percent}) \\
+  Forward window resolved at $\tauan$ & yes \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Curve in \texorpdfstring{$T$}{T}}
+
+Figure~\ref{fig:cp-vs-t} holds $H=200$ fixed and plots $\widehat{\CP}$ against $T$.
+The curve shows how conditional success frequency varies with holding horizon for the same state filter.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.92\linewidth]{cp_vs_T_20240115_H200}
+  \caption{CMAPS short-side $\widehat{\CP}$ versus forward horizon $T$ with $H=200$, $\eps=0.01$, $\tauan=\text{2024-01-15}$. Points with $n<5$ are omitted.}
+  \label{fig:cp-vs-t}
+\end{figure}
+
+Changing $H$ or $\eps$ shifts both $n$ and the composition of $B$; the next section treats that exploration systematically.
