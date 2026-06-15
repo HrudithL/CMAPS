@@ -48,6 +48,9 @@ export function StrategyTable({ H, k, relation, rows, onRowClick }: Props) {
               <th className="px-2 py-2">
                 <MathInline>{String.raw`CP=\frac{|A|}{|B|}`}</MathInline>
               </th>
+              <th className="px-2 py-2">
+                <MathInline>{String.raw`CP_{\text{smooth}}`}</MathInline>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -70,6 +73,11 @@ export function StrategyTable({ H, k, relation, rows, onRowClick }: Props) {
                     hits={row.hits}
                     occurrences={row.occurrences}
                   />
+                </td>
+                <td className="px-2 py-2 tabular-nums text-slate-800">
+                  {row.smoothed_cp != null
+                    ? `${(row.smoothed_cp * 100).toFixed(1)}%`
+                    : "—"}
                 </td>
               </tr>
             ))}

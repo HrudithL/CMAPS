@@ -1,7 +1,16 @@
 import type { StrategyResult } from "./analysis";
 
+export interface SmoothingParams {
+  median_b: number;
+  m_default: number;
+  r_default: number;
+  m: number;
+  r: number;
+}
+
 export interface SideCp {
   cp: number;
+  smoothed_cp: number;
   hits: number;
   occurrences: number;
   forward_resolved: boolean;
@@ -30,5 +39,6 @@ export interface LandingResponse {
   H_values: number[];
   T_values: number[];
   by_H: LandingHBlock[];
+  smoothing: SmoothingParams;
   top_strategies: StrategyResult[];
 }

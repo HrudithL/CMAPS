@@ -6,6 +6,14 @@ export interface MetaResponse {
   k_wiggle_sweep: { min: number; max: number; points: number };
 }
 
+export interface SmoothingParams {
+  median_b: number;
+  m_default: number;
+  r_default: number;
+  m: number;
+  r: number;
+}
+
 export interface StrategyResult {
   H: number;
   T: number;
@@ -15,6 +23,7 @@ export interface StrategyResult {
   hits: number;
   occurrences: number;
   cp: number;
+  smoothed_cp?: number;
   forward_resolved: boolean;
 }
 
@@ -35,11 +44,20 @@ export interface PriceContextPoint {
   [key: string]: string | number;
 }
 
+export interface PriceContext {
+  dates: string[];
+  price: number[];
+  ma: Record<string, (number | null)[]>;
+  ma_windows: number[];
+  analysis_date: string;
+}
+
 export interface ContourHighlightStats {
   H: number;
   T: number;
   side: string;
   cp: number;
+  smoothed_cp: number;
   hits: number;
   occurrences: number;
   k_today: number;
@@ -50,24 +68,20 @@ export interface ContourPayload {
   H_values: number[];
   T_values: number[];
   cp: (number | null)[][];
+  smoothed_cp: (number | null)[][];
   occurrences: (number | null)[][];
   sides: (string | null)[][];
   boundary_h: number[];
   highlight: { H: number; T: number };
   highlight_stats: ContourHighlightStats | null;
-}
-
-export interface KHistogramBin {
-  start: number;
-  end: number;
-  count: number;
+  smoothing: SmoothingParams;
 }
 
 export interface KDistributionPayload {
   H: number;
   k_today: number;
   k_wiggle: number;
-  histogram: KHistogramBin[];
+  k_values: number[];
   within_wiggle: number;
   total_history: number;
 }
@@ -83,15 +97,13 @@ export interface AnalyzeResponse {
     H: number;
     T: number;
     cp: number;
+    smoothed_cp: number;
     hits: number;
     occurrences: number;
     forward_resolved: boolean;
   };
-  price_context: {
-    series: PriceContextPoint[];
-    ma_windows: number[];
-    analysis_date: string;
-  };
+  smoothing: SmoothingParams;
+  price_context: PriceContext;
   analog_events: AnalogEvent[];
   contour: ContourPayload;
   k_distribution: KDistributionPayload;
@@ -117,6 +129,8 @@ export interface AnalysisParams {
   H: number;
   T: number;
   k_wiggle: number;
+  m?: number;
+  r?: number;
   min_occurrences?: number;
   top_n?: number;
 }

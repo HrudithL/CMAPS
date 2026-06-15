@@ -1,13 +1,28 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { ControlPanel } from "../components/ControlPanel";
-import { ContourSection } from "../components/ContourSection";
-import { KDistributionChart } from "../components/KDistributionChart";
 import { Navbar } from "../components/Navbar";
-import { PriceMaChart } from "../components/PriceMaChart";
 import { StrategyInspector } from "../components/StrategyInspector";
 import { StrategyTable } from "../components/StrategyTable";
 import { useAnalysis } from "../hooks/useAnalysis";
 import type { StrategyResult } from "../types/analysis";
+
+const PriceMaChart = lazy(() =>
+  import("../components/PriceMaChart").then((m) => ({ default: m.PriceMaChart })),
+);
+const ContourSection = lazy(() =>
+  import("../components/ContourSection").then((m) => ({ default: m.ContourSection })),
+);
+const KDistributionChart = lazy(() =>
+  import("../components/KDistributionChart").then((m) => ({ default: m.KDistributionChart })),
+);
+
+function ChartFallback() {
+  return (
+    <div className="flex h-[440px] items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+      Rendering chart…
+    </div>
+  );
+}
 
 export function PlotsPage() {
   const {
@@ -16,8 +31,6 @@ export function PlotsPage() {
     params,
     loading,
     error,
-    autoUpdate,
-    setAutoUpdate,
     updateParams,
     analyzeNow,
   } = useAnalysis();
@@ -43,10 +56,8 @@ export function PlotsPage() {
         params={params}
         data={data}
         loading={loading}
-        autoUpdate={autoUpdate}
         onParamsChange={updateParams}
         onAnalyze={analyzeNow}
-        onAutoUpdateChange={setAutoUpdate}
       />
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
@@ -60,11 +71,25 @@ export function PlotsPage() {
           <p className="text-center text-sm text-slate-500">Running analysis…</p>
         )}
 
+        {!loading && !data && !error && (
+          <p className="text-center text-sm text-slate-500">
+            Set parameters and click Analyze to load charts.
+          </p>
+        )}
+
         {data && (
           <>
-            <PriceMaChart data={data} maOptions={meta.grid.H_days} />
+            <Suspense fallback={<ChartFallback />}>
+              <PriceMaChart data={data} maOptions={meta.grid.H_days} />
+            </Suspense>
 
-            <ContourSection contour={data.contour} />
+            <Suspense fallback={<ChartFallback />}>
+              <ContourSection
+                contour={data.contour}
+                selectedH={params.H}
+                selectedT={params.T}
+              />
+            </Suspense>
 
             <StrategyTable
               H={params.H}
@@ -74,7 +99,9 @@ export function PlotsPage() {
               onRowClick={openStrategy}
             />
 
-            <KDistributionChart distribution={data.k_distribution} />
+            <Suspense fallback={<ChartFallback />}>
+              <KDistributionChart distribution={data.k_distribution} />
+            </Suspense>
           </>
         )}
       </main>

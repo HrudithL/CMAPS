@@ -140,6 +140,11 @@ export function OverviewNarrative({
                 <p className="mt-2 text-sm leading-relaxed text-slate-800">
                   {outlook.text}
                 </p>
+                {outlook.smoothedText && (
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                    {outlook.smoothedText}
+                  </p>
+                )}
                 {outlook.stats.occurrences > 0 && (
                   <OutlookBar cp={outlook.stats.cp} side={outlookTone} />
                 )}

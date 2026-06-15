@@ -5,8 +5,12 @@ from __future__ import annotations
 from analysis import AnalogEvent, StrategyResult
 
 
-def strategy_to_dict(row: StrategyResult) -> dict:
-    return {
+def strategy_to_dict(
+    row: StrategyResult,
+    *,
+    smoothed_cp: float | None = None,
+) -> dict:
+    payload = {
         "H": row.H,
         "T": row.T,
         "side": row.side,
@@ -17,6 +21,9 @@ def strategy_to_dict(row: StrategyResult) -> dict:
         "cp": round(row.cp, 4),
         "forward_resolved": row.forward_resolved,
     }
+    if smoothed_cp is not None:
+        payload["smoothed_cp"] = round(smoothed_cp, 4)
+    return payload
 
 
 def analog_to_dict(event: AnalogEvent) -> dict:

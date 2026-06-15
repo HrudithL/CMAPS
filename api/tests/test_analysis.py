@@ -7,7 +7,12 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from analysis import compute_analog_events, compute_cp_at, resolve_analysis_date
+from analysis import (
+    compute_analog_events,
+    compute_cp_at,
+    resolve_analysis_date,
+    smoothed_cp,
+)
 from data_loader import load_bitcoin_data
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,3 +51,7 @@ def test_analog_events_match_aggregate(df: pd.DataFrame) -> None:
 
 def test_csv_exists() -> None:
     assert CSV_PATH.exists()
+
+
+def test_smoothed_cp_formula() -> None:
+    assert smoothed_cp(16, 88, 50.0, 0.5) == pytest.approx((16 + 25) / 138, rel=1e-6)

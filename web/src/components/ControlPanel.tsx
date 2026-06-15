@@ -6,10 +6,8 @@ interface Props {
   params: AnalysisParams;
   data: AnalyzeResponse | null;
   loading: boolean;
-  autoUpdate: boolean;
   onParamsChange: (patch: Partial<AnalysisParams>) => void;
-  onAnalyze: () => void;
-  onAutoUpdateChange: (value: boolean) => void;
+  onAnalyze: (patch?: Partial<AnalysisParams>) => void;
 }
 
 export function ControlPanel({
@@ -17,10 +15,8 @@ export function ControlPanel({
   params,
   data,
   loading,
-  autoUpdate,
   onParamsChange,
   onAnalyze,
-  onAutoUpdateChange,
 }: Props) {
   const sideClass =
     data?.side === "long"
@@ -81,6 +77,41 @@ export function ControlPanel({
             />
           </label>
 
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+            m
+            <input
+              type="number"
+              min={0}
+              step={0.1}
+              className="w-24 rounded border border-slate-300 px-2 py-1.5 text-sm"
+              value={params.m ?? ""}
+              placeholder="auto"
+              onChange={(e) =>
+                onParamsChange({
+                  m: e.target.value === "" ? undefined : Number(e.target.value),
+                })
+              }
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+            r
+            <input
+              type="number"
+              min={0}
+              max={1}
+              step={0.01}
+              className="w-24 rounded border border-slate-300 px-2 py-1.5 text-sm"
+              value={params.r ?? ""}
+              placeholder="auto"
+              onChange={(e) =>
+                onParamsChange({
+                  r: e.target.value === "" ? undefined : Number(e.target.value),
+                })
+              }
+            />
+          </label>
+
           <label className="flex min-w-[180px] flex-col gap-1 text-xs font-medium text-slate-600">
             k wiggle ±{params.k_wiggle.toFixed(3)}
             <input
@@ -95,19 +126,10 @@ export function ControlPanel({
             />
           </label>
 
-          <label className="flex items-center gap-2 pb-1 text-xs text-slate-600">
-            <input
-              type="checkbox"
-              checked={autoUpdate}
-              onChange={(e) => onAutoUpdateChange(e.target.checked)}
-            />
-            Auto-update
-          </label>
-
           <button
             type="button"
             className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-            onClick={onAnalyze}
+            onClick={() => onAnalyze()}
             disabled={loading}
           >
             {loading ? "Analyzing…" : "Analyze"}
@@ -127,6 +149,9 @@ export function ControlPanel({
             <span className="font-medium text-slate-900">
               CP {(data.primary.cp * 100).toFixed(1)}% ({data.primary.hits}/
               {data.primary.occurrences})
+            </span>
+            <span className="text-slate-600">
+              Smoothed {(data.primary.smoothed_cp * 100).toFixed(1)}%
             </span>
             <span className="text-slate-600">
               BTC ${data.price_today.toLocaleString()}

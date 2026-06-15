@@ -116,6 +116,40 @@ export function MethodologyContent({ epsilon }: Props) {
             {String.raw`CP_{\text{short}}(H,T) = \frac{\left|A_{\text{short}}(H,T)\right|}{\left|B_{\text{short}}(H)\right|}`}
           </MathBlock>
         </div>
+
+        <div className="border-t border-slate-100 pt-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+            Bayesian smoothing
+          </p>
+          <p className="mb-2 text-sm text-slate-600">
+            Raw CP can swing when |B| is small. We add m pseudo-observations with
+            expected hit rate r, then recompute:
+          </p>
+          <MathBlock
+            fit
+            stacked={String.raw`\begin{aligned} CP_{\text{smooth}}(A \mid B) &= \frac{|A \cap B| + m \cdot r}{|B| + m} \\ &= \frac{\text{hits} + m \cdot r}{\text{occurrences} + m} \end{aligned}`}
+          >
+            {String.raw`CP_{\text{smooth}}(A \mid B) = \frac{|A \cap B| + m \cdot r}{|B| + m} = \frac{\text{hits} + m \cdot r}{\text{occurrences} + m}`}
+          </MathBlock>
+          <p className="mb-2 mt-3 text-sm text-slate-600">
+            <strong>m</strong> (extra samples): defaults to 10% of the median |B| across all
+            (H, side) strategy pairs. Adjustable in the Plots analyze bar.
+          </p>
+          <MathBlock fit>
+            {String.raw`m_{\text{default}} = 0.1 \cdot \operatorname{median}_{H,\,\text{side}} \left|B(H)\right|`}
+          </MathBlock>
+          <p className="mb-2 mt-3 text-sm text-slate-600">
+            <strong>r</strong> (expected hit rate): defaults to the median CP across all (H, T,
+            side) combinations with at least one analog. Also adjustable in the analyze bar.
+          </p>
+          <MathBlock fit>
+            {String.raw`r_{\text{default}} = \operatorname{median}_{H,T,\,\text{side}} CP(H,T)`}
+          </MathBlock>
+          <p className="mt-2 text-sm text-slate-600">
+            When occurrences is large, smoothed CP ≈ raw CP. When occurrences is small,
+            smoothed CP is pulled toward r — the typical rate across all strategies.
+          </p>
+        </div>
       </div>
     </div>
   );

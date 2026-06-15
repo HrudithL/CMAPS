@@ -35,3 +35,4 @@ filtering:
 
 output:
   plot_dpi: 150
+  contour_step: 1

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import type { Data } from "plotly.js";
+import { PLOTLY_PAN_ZOOM_CONFIG, PLOTLY_PAN_ZOOM_LAYOUT } from "../lib/plotlyConfig";
 import type { AnalyzeResponse } from "../types/analysis";
 
 const DEFAULT_MAS = [65, 200, 365];
@@ -53,8 +54,8 @@ export function PriceMaChart({ data, maOptions }: Props) {
   const traces = useMemo(() => {
     const result: Data[] = [
       {
-        x: ctx.series.map((p) => p.date),
-        y: ctx.series.map((p) => p.price),
+        x: ctx.dates,
+        y: ctx.price,
         type: "scatter",
         mode: "lines",
         name: "BTC price",
@@ -63,10 +64,9 @@ export function PriceMaChart({ data, maOptions }: Props) {
     ];
 
     selected.forEach((H, i) => {
-      const key = `ma_${H}`;
       result.push({
-        x: ctx.series.map((p) => p.date),
-        y: ctx.series.map((p) => p[key] ?? null),
+        x: ctx.dates,
+        y: ctx.ma[String(H)] ?? ctx.dates.map(() => null),
         type: "scatter",
         mode: "lines",
         name: `MA(${H})`,
@@ -75,7 +75,7 @@ export function PriceMaChart({ data, maOptions }: Props) {
     });
 
     return result;
-  }, [ctx.series, selected]);
+  }, [ctx.dates, ctx.price, ctx.ma, selected]);
 
   const atMax = selected.length >= MAX_MAS;
 
@@ -121,6 +121,7 @@ export function PriceMaChart({ data, maOptions }: Props) {
       <Plot
         data={traces}
         layout={{
+          ...PLOTLY_PAN_ZOOM_LAYOUT,
           autosize: true,
           height: 440,
           margin: { l: 70, r: 20, t: 10, b: 50 },
@@ -139,7 +140,7 @@ export function PriceMaChart({ data, maOptions }: Props) {
           yaxis: { title: { text: "USD" }, tickprefix: "$", type: "linear" },
           legend: { orientation: "h", y: 1.1 },
         }}
-        config={{ responsive: true, displayModeBar: false }}
+        config={PLOTLY_PAN_ZOOM_CONFIG}
         className="w-full"
         useResizeHandler
       />

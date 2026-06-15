@@ -9,6 +9,8 @@ function paramsFromUrl(): Partial<AnalysisParams> {
   if (params.get("H")) parsed.H = Number(params.get("H"));
   if (params.get("T")) parsed.T = Number(params.get("T"));
   if (params.get("k_wiggle")) parsed.k_wiggle = Number(params.get("k_wiggle"));
+  if (params.get("m")) parsed.m = Number(params.get("m"));
+  if (params.get("r")) parsed.r = Number(params.get("r"));
   return parsed;
 }
 
@@ -19,6 +21,8 @@ function syncUrl(params: AnalysisParams) {
     T: String(params.T),
     k_wiggle: String(params.k_wiggle),
   });
+  if (params.m !== undefined) query.set("m", String(params.m));
+  if (params.r !== undefined) query.set("r", String(params.r));
   const next = `/plots?${query}`;
   window.history.replaceState(null, "", next);
 }
@@ -27,10 +31,9 @@ export function useAnalysis() {
   const [meta, setMeta] = useState<MetaResponse | null>(null);
   const [data, setData] = useState<AnalyzeResponse | null>(null);
   const [params, setParams] = useState<AnalysisParams | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoUpdate, setAutoUpdate] = useState(true);
-  const debounceRef = useRef<number | null>(null);
+  const initialRunDone = useRef(false);
 
   useEffect(() => {
     fetchMeta()
@@ -56,7 +59,13 @@ export function useAnalysis() {
     try {
       const result = await fetchAnalyze(p);
       setData(result);
-      syncUrl(p);
+      const synced = {
+        ...p,
+        m: p.m ?? result.smoothing.m,
+        r: p.r ?? result.smoothing.r,
+      };
+      setParams(synced);
+      syncUrl(synced);
     } catch (err) {
       setData(null);
       setError(err instanceof Error ? err.message : "Analysis failed");
@@ -66,23 +75,24 @@ export function useAnalysis() {
   }, []);
 
   useEffect(() => {
-    if (!params) return;
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    if (autoUpdate) {
-      debounceRef.current = window.setTimeout(() => runAnalysis(params), 400);
-    }
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    };
-  }, [params, autoUpdate, runAnalysis]);
+    if (!params || initialRunDone.current) return;
+    initialRunDone.current = true;
+    void runAnalysis(params);
+  }, [params, runAnalysis]);
 
   const updateParams = useCallback((patch: Partial<AnalysisParams>) => {
     setParams((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
-  const analyzeNow = useCallback(() => {
-    if (params) runAnalysis(params);
-  }, [params, runAnalysis]);
+  const analyzeNow = useCallback(
+    (patch?: Partial<AnalysisParams>) => {
+      if (!params) return;
+      const next = patch ? { ...params, ...patch } : params;
+      if (patch) setParams(next);
+      void runAnalysis(next);
+    },
+    [params, runAnalysis],
+  );
 
   return {
     meta,
@@ -90,8 +100,6 @@ export function useAnalysis() {
     params,
     loading,
     error,
-    autoUpdate,
-    setAutoUpdate,
     updateParams,
     analyzeNow,
     setError,

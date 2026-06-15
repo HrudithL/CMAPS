@@ -39,6 +39,12 @@ export function fetchAnalyze(params: AnalysisParams): Promise<AnalyzeResponse> {
     T: String(params.T),
     k_wiggle: String(params.k_wiggle),
   });
+  if (params.m !== undefined) {
+    query.set("m", String(params.m));
+  }
+  if (params.r !== undefined) {
+    query.set("r", String(params.r));
+  }
   if (params.min_occurrences !== undefined) {
     query.set("min_occurrences", String(params.min_occurrences));
   }

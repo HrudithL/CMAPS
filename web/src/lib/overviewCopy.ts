@@ -126,9 +126,20 @@ function outcomeSentence(
   );
 }
 
+export function smoothedOutcomeSentence(stats: SideCp): string | null {
+  if (stats.occurrences === 0) return null;
+
+  const smoothedPct = formatPercent(stats.smoothed_cp);
+  return (
+    `When the conditional probability is adjusted for the number of samples using ` +
+    `Bayesian smoothing, this results in a smoothed conditional probability of ${smoothedPct}.`
+  );
+}
+
 export interface TimeframeOutlook {
   T: number;
   text: string;
+  smoothedText: string | null;
   stats: SideCp;
   side: "long" | "short";
 }
@@ -147,6 +158,7 @@ export function buildTimeframeOutlooks(
       stats,
       side,
       text: outcomeSentence(side, row.T, stats),
+      smoothedText: smoothedOutcomeSentence(stats),
     };
   });
 }

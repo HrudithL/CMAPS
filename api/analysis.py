@@ -253,6 +253,15 @@ def compute_strategy_grid(
     return results
 
 
+def smoothed_cp(hits: int, occurrences: int, m: float, r: float) -> float:
+    """Bayesian-smoothed conditional probability: (hits + m*r) / (occurrences + m)."""
+    m = max(0.0, float(m))
+    denom = occurrences + m
+    if denom <= 0:
+        return float(r)
+    return (hits + m * r) / denom
+
+
 def rank_strategies(
     rows: list[StrategyResult],
     min_occurrences: int,
