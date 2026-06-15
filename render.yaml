@@ -7,7 +7,7 @@ services:
     dockerfilePath: api/Dockerfile
     dockerContext: .
     plan: free
-    healthCheckPath: /health
+    healthCheckPath: /health    
     envVars:
       - key: CORS_ORIGINS
         sync: false
