@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { ControlPanel } from "../components/ControlPanel";
-import { Navbar } from "../components/Navbar";
+import { AppFooter } from "../components/layout/AppFooter";
+import { AppNavbar } from "../components/layout/AppNavbar";
 import { StrategyInspector } from "../components/StrategyInspector";
 import { StrategyTable } from "../components/StrategyTable";
 import { useAnalysis } from "../hooks/useAnalysis";
@@ -18,7 +19,7 @@ const KDistributionChart = lazy(() =>
 
 function ChartFallback() {
   return (
-    <div className="flex h-[440px] items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
+    <div className="app-card flex h-[440px] items-center justify-center text-sm text-[var(--color-slate-ui)]">
       Rendering chart…
     </div>
   );
@@ -39,7 +40,7 @@ export function PlotsPage() {
 
   if (!meta || !params) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+      <div className="app-canvas flex min-h-screen items-center justify-center text-[var(--color-graphite)]">
         Loading dashboard…
       </div>
     );
@@ -48,8 +49,8 @@ export function PlotsPage() {
   const openStrategy = (row: StrategyResult) => setInspector(row);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <Navbar />
+    <div className="app-canvas min-h-screen">
+      <AppNavbar />
 
       <ControlPanel
         meta={meta}
@@ -60,21 +61,23 @@ export function PlotsPage() {
         onAnalyze={analyzeNow}
       />
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
             {error}
           </div>
         )}
 
         {loading && !data && (
-          <p className="text-center text-sm text-slate-500">Running analysis…</p>
+          <p className="text-center text-sm text-[var(--color-slate-ui)]">Running analysis…</p>
         )}
 
         {!loading && !data && !error && (
-          <p className="text-center text-sm text-slate-500">
-            Set parameters and click Analyze to load charts.
-          </p>
+          <div className="app-card py-16 text-center">
+            <p className="text-sm text-[var(--color-slate-ui)]">
+              Set parameters above and click Analyze to load charts.
+            </p>
+          </div>
         )}
 
         {data && (
@@ -106,9 +109,7 @@ export function PlotsPage() {
         )}
       </main>
 
-      <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        Historical analog analysis only. Not financial advice.
-      </footer>
+      <AppFooter />
 
       {inspector && params && (
         <StrategyInspector

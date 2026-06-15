@@ -25,23 +25,23 @@ function formatPrice(value: number) {
 }
 
 function summaryCardClass(relation: string) {
-  const base =
-    "flex h-full flex-col rounded-xl border bg-white p-4 shadow-sm";
+  const base = "app-card flex h-full flex-col p-5";
   if (relation === "below") {
-    return `${base} border-emerald-200`;
+    return `${base} ring-1 ring-emerald-200/80`;
   }
   if (relation === "above") {
-    return `${base} border-rose-200`;
+    return `${base} ring-1 ring-rose-200/80`;
   }
-  return `${base} border-slate-200`;
+  return base;
 }
 
 function OutlookBar({ cp, side }: { cp: number; side: "long" | "short" }) {
   if (cp <= 0) return null;
-  const color = side === "long" ? "bg-emerald-500" : "bg-rose-500";
+  const color =
+    side === "long" ? "bg-[var(--color-emerald)]" : "bg-[var(--color-rose)]";
   return (
     <div
-      className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100"
+      className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-chalk)]"
       aria-hidden
     >
       <div
@@ -70,14 +70,14 @@ export function OverviewNarrative({
   const outlookTone = block.relation === "below" ? "long" : "short";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className={summaryCardClass("neutral")}>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-slate-ui)]">
             Current price
           </p>
-          <p className="mt-1 text-xs text-slate-500">{resolvedDate}</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900 lg:text-3xl">
+          <p className="mt-1 text-xs text-[var(--color-slate-ui)]">{resolvedDate}</p>
+          <p className="font-display mt-3 text-3xl font-medium tabular-nums text-[var(--color-carbon)] lg:text-4xl">
             {formatPrice(priceToday)}
           </p>
           {resolvedDate !== analysisDate && (
@@ -88,13 +88,13 @@ export function OverviewNarrative({
         </section>
 
         <section className={summaryCardClass(block.relation)}>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-slate-ui)]">
             Versus {block.H}-day average
           </p>
-          <h3 className="mt-2 text-base font-semibold text-slate-900">
+          <h3 className="font-display mt-3 text-lg font-medium text-[var(--color-carbon)]">
             {maHeading(block.relation, block.H)}
           </h3>
-          <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-700">
+          <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--color-graphite)]">
             {isExactMa
               ? atMaExplanation(block.H, formatPrice, block.ma)
               : relationSentence}
@@ -102,46 +102,46 @@ export function OverviewNarrative({
         </section>
 
         <section className={summaryCardClass("neutral")}>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-slate-ui)]">
             Similar past days
           </p>
-          <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-700">
+          <p className="mt-3 flex-1 text-sm leading-relaxed text-[var(--color-graphite)]">
             {similarDaysIntro(kWiggle, block.H, block.relation)}
           </p>
         </section>
       </div>
 
       {!isExactMa && outlooks.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900">
+        <section className="app-card p-6 sm:p-8">
+          <h3 className="font-display text-xl font-medium text-[var(--color-carbon)]">
             {outlookSectionHeading(block.relation)}
           </h3>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-[var(--color-graphite)]">
             Bitcoin is{" "}
             {block.relation === "below" ? "below" : "above"} its {block.H}-day moving
             average today. Each card shows how often price moved in the typical direction
             after waiting that many days.
           </p>
 
-          <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {outlooks.map((outlook) => (
               <li
                 key={outlook.T}
                 className={[
-                  "rounded-lg border px-4 py-4",
+                  "rounded-xl border px-5 py-5",
                   outlook.side === "long"
-                    ? "border-emerald-100 bg-emerald-50/40"
-                    : "border-rose-100 bg-rose-50/40",
+                    ? "border-emerald-100 bg-emerald-50/50"
+                    : "border-rose-100 bg-rose-50/50",
                 ].join(" ")}
               >
-                <h4 className="text-sm font-semibold text-slate-900">
+                <h4 className="font-display text-base font-medium text-[var(--color-carbon)]">
                   After {outlook.T} days
                 </h4>
-                <p className="mt-2 text-sm leading-relaxed text-slate-800">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-carbon)]">
                   {outlook.text}
                 </p>
                 {outlook.smoothedText && (
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-graphite)]">
                     {outlook.smoothedText}
                   </p>
                 )}
@@ -154,7 +154,7 @@ export function OverviewNarrative({
         </section>
       )}
 
-      <p className="text-center text-xs text-slate-500">
+      <p className="text-center text-xs text-[var(--color-slate-ui)]">
         These figures describe past patterns only. They are not a forecast and not financial
         advice.
       </p>

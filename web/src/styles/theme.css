@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+@theme {
+  /* Landing — obsidian command deck */
+  --color-void: #08090a;
+  --color-ink: #0f1011;
+  --color-panel: #161718;
+  --color-rim: #23252a;
+  --color-steel: #383b3f;
+  --color-ash: #62666d;
+  --color-mist: #8a8f98;
+  --color-cloud: #d0d6e0;
+  --color-snow: #f7f8f8;
+
+  /* App — warm analytics parchment */
+  --color-canvas: #efeeeb;
+  --color-paper: #ffffff;
+  --color-fog: #f5f4f1;
+  --color-chalk: #e8e7e3;
+  --color-carbon: #1a1917;
+  --color-graphite: #44403c;
+  --color-slate-ui: #78716c;
+
+  /* Accents */
+  --color-amber: #f59e0b;
+  --color-amber-dim: #d97706;
+  --color-amber-glow: #fbbf24;
+  --color-indigo: #6366f1;
+  --color-emerald: #10b981;
+  --color-rose: #f43f5e;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-card: 12px;
+  --radius-pill: 9999px;
+  --radius-btn: 8px;
+
+  --shadow-card: 0 1px 3px rgba(26, 25, 23, 0.04), 0 4px 16px rgba(26, 25, 23, 0.06);
+  --shadow-panel: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 0 0 1px #23252a;
+  --shadow-glow: 0 0 60px rgba(245, 158, 11, 0.15);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.015em;
+}
+
+/* Landing surface */
+.landing-canvas {
+  background-color: var(--color-void);
+  color: var(--color-snow);
+}
+
+.landing-grid-bg {
+  background-image:
+    linear-gradient(rgba(35, 37, 42, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 37, 42, 0.4) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 70%);
+}
+
+.landing-card {
+  background: var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-panel);
+}
+
+.landing-cta {
+  background: var(--color-amber);
+  color: var(--color-void);
+  font-weight: 600;
+  border-radius: var(--radius-btn);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.landing-cta:hover {
+  background: var(--color-amber-glow);
+  transform: translateY(-1px);
+}
+
+.landing-ghost {
+  color: var(--color-mist);
+  border: 1px solid var(--color-rim);
+  border-radius: var(--radius-pill);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.landing-ghost:hover {
+  color: var(--color-snow);
+  border-color: var(--color-ash);
+}
+
+/* App surface */
+.app-canvas {
+  background-color: var(--color-canvas);
+  color: var(--color-carbon);
+}
+
+.app-card {
+  background: var(--color-paper);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.app-pill-nav {
+  background: var(--color-paper);
+  border: 1px solid var(--color-chalk);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-card);
+}
+
+.app-btn-primary {
+  background: var(--color-carbon);
+  color: var(--color-paper);
+  border-radius: 20px;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.app-btn-primary:hover {
+  opacity: 0.88;
+}
+
+.app-btn-outline {
+  border: 1px solid var(--color-carbon);
+  color: var(--color-carbon);
+  border-radius: 20px;
+  font-weight: 500;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.app-btn-outline:hover {
+  background: var(--color-fog);
+}
+
+.math-fit-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+.math-fit-inner .katex-display {
+  margin: 0.4em 0;
+  text-align: left;
+}
+
+.math-inline .katex {
+  font-size: 0.95em;
+}
+
+@media (max-width: 640px) {
+  .math-inline .katex {
+    font-size: 0.82em;
+  }
+}

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import type { Data } from "plotly.js";
-import { PLOTLY_PAN_ZOOM_CONFIG, PLOTLY_PAN_ZOOM_LAYOUT } from "../lib/plotlyConfig";
+import { PLOTLY_PAN_ZOOM_CONFIG, themedLayout } from "../lib/plotlyConfig";
 import type { AnalyzeResponse } from "../types/analysis";
 
 const DEFAULT_MAS = [65, 200, 365];
 const MAX_MAS = 3;
-const MA_COLORS = ["#ff7f0e", "#9467bd", "#8c564b"];
+const MA_COLORS = ["#f59e0b", "#6366f1", "#78716c"];
 
 interface Props {
   data: AnalyzeResponse;
@@ -59,7 +59,7 @@ export function PriceMaChart({ data, maOptions }: Props) {
         type: "scatter",
         mode: "lines",
         name: "BTC price",
-        line: { color: "#1f77b4", width: 1.5 },
+        line: { color: "#1a1917", width: 2 },
       },
     ];
 
@@ -80,19 +80,21 @@ export function PriceMaChart({ data, maOptions }: Props) {
   const atMax = selected.length >= MAX_MAS;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-slate-900">Bitcoin price &amp; moving averages</h2>
+    <section className="app-card p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-lg font-medium text-[var(--color-carbon)]">
+          Bitcoin price &amp; moving averages
+        </h2>
         <div className="relative" ref={menuRef}>
           <button
             type="button"
-            className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="app-btn-outline px-3 py-1.5 text-xs"
             onClick={() => setOpen((v) => !v)}
           >
             MAs ({selected.length}/{MAX_MAS}) ▾
           </button>
           {open && (
-            <div className="absolute right-0 z-10 mt-1 min-w-[10rem] rounded-md border border-slate-200 bg-white py-2 shadow-lg">
+            <div className="absolute right-0 z-10 mt-1 min-w-[10rem] rounded-lg border border-[var(--color-chalk)] bg-[var(--color-paper)] py-2 shadow-lg">
               {maOptions.map((h) => {
                 const checked = selected.includes(h);
                 const disabled = !checked && atMax;
@@ -101,7 +103,9 @@ export function PriceMaChart({ data, maOptions }: Props) {
                     key={h}
                     className={[
                       "flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm",
-                      disabled ? "cursor-not-allowed text-slate-400" : "text-slate-700 hover:bg-slate-50",
+                      disabled
+                        ? "cursor-not-allowed text-[var(--color-slate-ui)]"
+                        : "text-[var(--color-graphite)] hover:bg-[var(--color-fog)]",
                     ].join(" ")}
                   >
                     <input
@@ -120,8 +124,7 @@ export function PriceMaChart({ data, maOptions }: Props) {
       </div>
       <Plot
         data={traces}
-        layout={{
-          ...PLOTLY_PAN_ZOOM_LAYOUT,
+        layout={themedLayout({
           autosize: true,
           height: 440,
           margin: { l: 70, r: 20, t: 10, b: 50 },
@@ -133,13 +136,13 @@ export function PriceMaChart({ data, maOptions }: Props) {
               y0: 0,
               y1: 1,
               yref: "paper",
-              line: { color: "#64748b", dash: "dot", width: 1 },
+              line: { color: "#a8a29e", dash: "dot", width: 1 },
             },
           ],
           xaxis: { title: { text: "Date" } },
           yaxis: { title: { text: "USD" }, tickprefix: "$", type: "linear" },
           legend: { orientation: "h", y: 1.1 },
-        }}
+        })}
         config={PLOTLY_PAN_ZOOM_CONFIG}
         className="w-full"
         useResizeHandler

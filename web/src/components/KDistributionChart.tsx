@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import Plot from "react-plotly.js";
 import type { Data, Layout } from "plotly.js";
-import { PLOTLY_PAN_ZOOM_CONFIG, PLOTLY_PAN_ZOOM_LAYOUT } from "../lib/plotlyConfig";
+import { PLOTLY_PAN_ZOOM_CONFIG, themedLayout } from "../lib/plotlyConfig";
 import type { KDistributionPayload } from "../types/analysis";
 
 interface Props {
@@ -51,11 +51,11 @@ export function KDistributionChart({ distribution }: Props) {
         name: "Historical k",
         orientation: "h",
         boxpoints: "outliers",
-        fillcolor: "rgba(148, 163, 184, 0.35)",
-        line: { color: "#64748b", width: 1.5 },
+        fillcolor: "rgba(120, 113, 108, 0.25)",
+        line: { color: "#78716c", width: 1.5 },
         marker: {
-          color: "#64748b",
-          outliercolor: "#dc2626",
+          color: "#78716c",
+          outliercolor: "#f43f5e",
           size: 4,
         },
         hoveron: "points",
@@ -72,9 +72,9 @@ export function KDistributionChart({ distribution }: Props) {
         name: "k today",
         marker: {
           size: 14,
-          color: "#0f172a",
+          color: "#1a1917",
           symbol: "diamond",
-          line: { color: "#0f172a", width: 1.5 },
+          line: { color: "#f59e0b", width: 2 },
         },
         hovertemplate: "k today %{x:.4f}<extra></extra>",
         xaxis: "x",
@@ -85,10 +85,10 @@ export function KDistributionChart({ distribution }: Props) {
         x: histogram.centers,
         y: histogram.counts,
         width: histogram.width * 0.92,
-        marker: { color: "#94a3b8" },
+        marker: { color: "#d6d3d1" },
         text: labelText,
         textposition: "outside",
-        textfont: { size: 9, color: "#475569" },
+        textfont: { size: 9, color: "#78716c" },
         cliponaxis: false,
         hovertemplate: "k %{x:.4f}<br>count %{y}<extra></extra>",
         showlegend: false,
@@ -99,8 +99,7 @@ export function KDistributionChart({ distribution }: Props) {
   }, [histogram, k_today, k_values]);
 
   const layout = useMemo((): Partial<Layout> => {
-    return {
-      ...PLOTLY_PAN_ZOOM_LAYOUT,
+    return themedLayout({
       autosize: true,
       height: 420,
       margin: { l: 48, r: 16, t: 8, b: 52 },
@@ -139,7 +138,7 @@ export function KDistributionChart({ distribution }: Props) {
           x1: k_today + k_wiggle,
           y0: 0,
           y1: 1,
-          fillcolor: "rgba(34, 197, 94, 0.15)",
+          fillcolor: "rgba(245, 158, 11, 0.12)",
           line: { width: 0 },
           layer: "below",
         },
@@ -151,20 +150,20 @@ export function KDistributionChart({ distribution }: Props) {
           x1: k_today,
           y0: 0,
           y1: 1,
-          line: { color: "#0f172a", width: 1.5, dash: "dot" },
+          line: { color: "#f59e0b", width: 2, dash: "dot" },
           layer: "above",
         },
       ],
       legend: { orientation: "h", y: 1.08 },
-    };
+    });
   }, [k_today, k_wiggle, maxCount]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">
+    <section className="app-card p-5 sm:p-6">
+      <h2 className="font-display text-lg font-medium text-[var(--color-carbon)]">
         Today&apos;s k vs historical k (H = {H})
       </h2>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-1 text-sm text-[var(--color-graphite)]">
         {within_wiggle.toLocaleString()} of {total_history.toLocaleString()} prior days within k ±{" "}
         {k_wiggle} of today ({k_today.toFixed(4)}).
       </p>
@@ -175,7 +174,7 @@ export function KDistributionChart({ distribution }: Props) {
         useResizeHandler
         className="w-full"
       />
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-[var(--color-slate-ui)]">
         Top: box + outliers (red, hover on outliers only). Dotted line = k today. Green band = ±k wiggle.
         Drag to pan, scroll to zoom, double-click to reset.
       </p>

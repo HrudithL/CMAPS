@@ -34,15 +34,15 @@ export const RDYLBU_SCALE: ColorScale = [
   [1, "#313695"],
 ];
 
-/** Diverging scale for CP: rose (low) → slate (mid) → teal (high). */
+/** Diverging scale for CP: rose (low) → warm neutral (mid) → amber/teal (high). */
 export const CP_DIVERGING_SCALE: ColorScale = [
-  [0, "#b91c1c"],
-  [0.2, "#e11d48"],
-  [0.35, "#fda4af"],
-  [0.5, "#f1f5f9"],
-  [0.65, "#99f6e4"],
-  [0.8, "#14b8a6"],
-  [1, "#0f766e"],
+  [0, "#be123c"],
+  [0.2, "#f43f5e"],
+  [0.35, "#fecdd3"],
+  [0.5, "#f5f4f1"],
+  [0.65, "#fde68a"],
+  [0.8, "#f59e0b"],
+  [1, "#d97706"],
 ];
 
 /** Matplotlib twilight (dark → light), sampled 0.55 → 0 (user ref. gradient 3). */
