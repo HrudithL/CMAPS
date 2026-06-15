@@ -1,122 +1,98 @@
 # CMAPS
 
-**C**onditional **M**oving-**A**verage **P**robabilistic **S**imilarity on Bitcoin — interactive dashboard for historical analog conditional-probability analysis.
+**C**onditional **M**oving-**A**verage **P**robabilistic **S**imilarity — an interactive dashboard for Bitcoin conditional-probability analysis grounded in historical analogs.
 
-Given today's price-to-moving-average ratio \(k = P / \mathrm{MA}(H)\), CMAPS finds past days with a similar setup (within tolerance ε), then counts how often Bitcoin rose or fell over forward horizon \(T\). No model forecast — just auditable history.
+Instead of fitting a predictive model, CMAPS asks a narrower question: *given how Bitcoin sits relative to its moving average today, how often did price rise or fall over the next T days after past days that looked similar?* Every number on the site is a count over identifiable historical dates — hits, misses, and the analog days behind them are all inspectable.
 
 **Full product spec:** [SPEC.md](./SPEC.md)
 
-The LaTeX method paper lives in `paper/` locally (gitignored — not in the public repo).
+---
 
-## Stack
+## Financial framing
 
-| Layer | Tech |
-|-------|------|
-| Frontend | React 18+, Vite 6, TypeScript, Plotly, Tailwind |
-| Backend | FastAPI, pandas, numpy |
-| Data | `data/Bitcoin_2010.csv` (CoinGecko updater) |
+Moving averages are a common way to summarize trend. CMAPS encodes “where is price vs. trend?” with two knobs:
 
-## Local development
+- **H** — length of the moving-average window (e.g. 200 days).
+- **k** — the price-to-average ratio \(k = P / \mathrm{MA}(H)\).
 
-**One command (API + web)**
+When \(k < 1\), price closed **below** its H-day average (mean-reversion / dip framing → **long** side). When \(k > 1\), price closed **above** (extension / overbought framing → **short** side). Days exactly on the average (\(k = 1\)) are treated as neutral — no directional analog set.
 
-```bash
-pip install -e "api/[dev]"
-npm install
-cp .env.example .env   # optional; set API_PORT if 8000 is busy
-npm run dev
-```
+The forward question is equally simple: over horizon **T** calendar days, did price end higher (long hit) or lower (short hit)?
 
-Open http://localhost:5173. Vite proxies `/api` to the API port (`API_PORT` in `.env`, default `8000`).
+CMAPS does not recommend trades. It surfaces empirical frequencies from Bitcoin’s daily close history so you can judge whether “similar setups” historically leaned one way — and how sensitive that lean is to H, T, and match tolerance.
 
-**Separate terminals (optional)**
+---
 
-```bash
-# API
-cd api && pip install -e ".[dev]" && uvicorn main:app --reload --port 8000
+## Method (at a glance)
 
-# Web
-cd web && npm install && npm run dev
-```
+Let \(\tau\) be the analysis date. For each historical day \(t < \tau\):
 
-### Defaults
+1. Compute \(\mathrm{MA}_t(H)\) and \(k_t(H) = P_t / \mathrm{MA}_t(H)\).
+2. **Match** days where \(|k_t(H) - k_\tau(H)| \leq \varepsilon\) (tolerance ε, “k wiggle” in the UI).
+3. Split matches by side — long analogs have \(k_t < 1\); short analogs have \(k_t > 1\) (strict inequality; \(k_t = 1\) excluded).
+4. **Count outcomes** T days forward: long hit if \(P_{t+T} > P_t\); short hit if \(P_{t+T} < P_t\).
 
-- Date: today (or latest CSV row)
-- H=200, T=90, k wiggle ±0.01
-- Auto-update on param change (400 ms debounce)
-- URL sync: `?date=2024-01-15&H=200&T=90&k_wiggle=0.01`
+**Conditional probability:**
 
-## API routes
+\[
+CP_{\text{long}}(H,T) = \frac{|\{ t \in B_{\text{long}} : P_{t+T} > P_t \}|}{|B_{\text{long}}|}
+\qquad
+CP_{\text{short}}(H,T) = \frac{|\{ t \in B_{\text{short}} : P_{t+T} < P_t \}|}{|B_{\text{short}}|}
+\]
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/meta` | Dataset bounds, grid config, defaults |
-| GET | `/api/analyze` | Full dashboard payload |
-| GET | `/api/strategy/detail` | Analog drill-down |
-| POST | `/api/data/refresh` | Manual CSV update |
+where \(B_{\text{long}}\) and \(B_{\text{short}}\) are the matched analog sets for window H.
 
-## Tests
+**Bayesian smoothing** stabilizes raw CP when analog counts are small:
 
-```bash
-cd api && pytest -q
-cd web && npm run build
-```
+\[
+CP_{\text{smooth}} = \frac{\text{hits} + m \cdot r}{\text{occurrences} + m}
+\]
 
-## Docker (optional)
+with pseudo-count \(m\) and prior hit rate \(r\) (defaults derived from the full strategy grid; adjustable on the Plots page). Large \(|B|\) → smoothed CP ≈ raw CP; small \(|B|\) → estimate shrinks toward \(r\).
 
-```bash
-docker compose up --build
-```
+Formal notation and definitions: **Methodology** page in the app, or the LaTeX method note in `paper/` (local only).
 
-## Deployment (GitHub Pages + Render)
+---
 
-| Piece | Host | Config |
-|-------|------|--------|
-| Frontend | GitHub Pages | `.github/workflows/deploy-pages.yml` |
-| API | Render (Docker) | `render.yaml` + `api/Dockerfile` |
+## Parameters
 
-### 1. API on Render
+| Symbol | UI name | Role |
+|--------|---------|------|
+| \(\tau\) | Analysis date | “Today” for the study; only data strictly before \(\tau\) enters analog sets |
+| H | MA window | Days in the trailing simple moving average |
+| T | Forward horizon | Calendar days from analog entry to outcome check |
+| \(\varepsilon\) | k wiggle | Max absolute deviation in \(k\) for a day to count as “similar” |
+| m, r | Smoothing | Bayesian prior strength and expected hit rate |
 
-1. Push this repo to GitHub.
-2. [Render](https://render.com) → **New** → **Blueprint** → connect repo → approve `render.yaml`.
-3. When prompted for `CORS_ORIGINS`, set your Pages origin (project Pages use host only):
+Default grids for H and T (e.g. H ∈ {65, …, 1000}, T ∈ {90, …, 1095}) live in `config/pred_info.yaml`. The explorer sweeps these to rank (H, T) pairs by CP and plot H×T contour maps.
 
-   ```
-   https://hrudithl.github.io
-   ```
+---
 
-4. After deploy, note the service URL (e.g. `https://cmaps-api.onrender.com`). Free tier sleeps when idle — first request may take ~30s.
+## What the website shows
 
-Health check: `GET /health`. Data ships in the Docker image via `data/Bitcoin_2010.csv`; refresh with `POST /api/data/refresh` or rebuild after updating the CSV locally.
+| Page | Purpose |
+|------|---------|
+| **/** (Landing) | Three-step intuition: price vs. MA → find similar days → read forward frequencies |
+| **/overview** | Plain-language snapshot for the chosen date: relation to MA, matched analog count, CP across forward horizons |
+| **/methodology** | Full math: analog sets \(B_{\text{long}}\), \(B_{\text{short}}\), outcome sets, CP formulas, smoothing |
+| **/plots** | Interactive lab: price + MA chart with analog markers, k-distribution, CP contours over (H, T), ranked strategies, per-strategy drill-down listing every analog date, entry/exit price, and hit/miss |
 
-### 2. Frontend on GitHub Pages
+The Plots page is the core research surface — change date, H, T, and ε; URL query params preserve a view for sharing (`?date=…&H=…&T=…&k_wiggle=…`).
 
-1. Repo **Settings** → **Pages** → **Build and deployment** → Source: **GitHub Actions**.
-2. **Settings** → **Secrets and variables** → **Actions** → **Variables**:
+---
 
-   | Variable | Example |
-   |----------|---------|
-   | `VITE_API_URL` | `https://cmaps-api.onrender.com` |
-   | `VITE_BASE_PATH` | `/Cond_Prob_Analaysis/` |
+## Data
 
-   `VITE_BASE_PATH` must match the repo name for project Pages (`https://<user>.github.io/<repo>/`). Use `/` only for a `username.github.io` user site.
+Daily Bitcoin **closing prices** from 2010 onward (`data/Bitcoin_2010.csv`). Analysis uses calendar-day indexing; forward outcomes require T days of future data still in the series.
 
-3. Push to `main` — workflow `deploy-pages` builds `web/` and publishes `web/dist`.
+---
 
-### 3. Verify
+## Lineage
 
-- Pages: `https://hrudithl.github.io/Cond_Prob_Analaysis/`
-- API: `https://<your-render-host>/health` and `/api/meta`
-- Browser devtools: API calls go to Render (not `/api` on Pages — static host has no proxy).
+CMAPS implements the conditional-probability workflow from the `pred_info` research line in the parent Bitcoin_mstr project — the same analog-matching logic that produced static PDF reports, now as a transparent, explorable web dashboard.
 
-### Local production build smoke test
-
-```bash
-cd web
-VITE_API_URL=https://cmaps-api.onrender.com VITE_BASE_PATH=/Cond_Prob_Analaysis/ npm run build
-npm run preview
-```
+---
 
 ## Disclaimer
 
-Historical analog analysis only. Not financial advice.
+Historical analog analysis only. Past conditional frequencies do not guarantee future results. Not financial advice.

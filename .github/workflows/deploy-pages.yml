@@ -29,9 +29,10 @@ jobs:
       - name: Build web
         working-directory: web
         env:
-          # Set in repo Settings → Secrets and variables → Actions → Variables
+          # VITE_API_URL: repo Settings → Actions → Variables
           VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH }}
+          # Auto-match project Pages path; override vars.VITE_BASE_PATH for user sites (/)
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
         run: |
           npm ci
           npm run build
