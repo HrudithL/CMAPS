@@ -4,6 +4,8 @@ interface Props {
   epsilon: number;
 }
 
+const PAPER_URL = `${import.meta.env.BASE_URL}paper.pdf`;
+
 export function MethodologyContent({ epsilon }: Props) {
   return (
     <div className="space-y-8">
@@ -19,6 +21,49 @@ export function MethodologyContent({ epsilon }: Props) {
           Bitcoin rose or fell T days after past dates that looked like today.
         </p>
       </header>
+
+      <section className="site-card space-y-4 p-5 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-text-muted)]">
+              Method paper
+            </p>
+            <h2 className="font-display mt-1 text-lg font-medium text-[var(--color-text-primary)]">
+              CMAPS: Conditional Moving-Average Probabilistic Similarity
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+              The full write-up of the definitions, estimator, and smoothing used below.
+            </p>
+          </div>
+          <a
+            href={PAPER_URL}
+            download="cmaps-method-paper.pdf"
+            className="site-cta px-4 py-2 text-sm"
+          >
+            Download PDF
+          </a>
+        </div>
+        <object
+          data={PAPER_URL}
+          type="application/pdf"
+          className="chart-frame h-[70vh] w-full rounded-xl"
+          aria-label="CMAPS method paper preview"
+        >
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Your browser can’t display the PDF inline.
+            </p>
+            <a
+              href={PAPER_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-[var(--color-amber-glow)] hover:underline"
+            >
+              Open the paper in a new tab →
+            </a>
+          </div>
+        </object>
+      </section>
 
       <div className="methodology-math site-card space-y-6 p-5 sm:p-8">
         <div>

@@ -39,7 +39,7 @@ const PAGES = [
     to: "/methodology",
     tag: "Methodology",
     title: "How the math works",
-    body: "Formal definitions of analog sets, conditional probability, and Bayesian smoothing — for readers who want the full picture.",
+    body: "Formal definitions of analog sets, conditional probability, and Bayesian smoothing — for readers who want the full picture, alongside the CMAPS method paper.",
     demo: "math" as const,
   },
   {
