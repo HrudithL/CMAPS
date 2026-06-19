@@ -1,0 +1,20 @@
+\section{Introduction}
+\label{sec:intro}
+
+Moving averages are among the most common tools in technical and systematic analysis \cite{lo2000technical}.
+A natural question at any date $\tauan$ is not merely ``where is price relative to the average?'' but ``when the market previously looked \emph{like this}, what happened next?''
+
+CMAPS turns that question into a countable statistical object.
+Given a lookback window $H$ (days) and a forward horizon $T$ (days), the method:
+\begin{enumerate}
+  \item encodes each day by its price-to-moving-average ratio $k$;
+  \item selects historical days whose $k$ is within tolerance $\eps$ of today's value and share the same trend \emph{side} (below or above the average);
+  \item computes the fraction of those analogs for which the $T$-day forward move succeeded directionally.
+\end{enumerate}
+
+The output is a conditional probability $\CP(H,T)$ together with the analog count $n$ and the explicit event list behind the ratio.
+That transparency is the central design choice: the method is not a black-box signal but an auditable frequency over named historical dates.
+
+This note is intentionally compact.
+We state the method in full, explain optional smoothing for sparse analog sets, and show how analysts explore the $(H,T,\eps)$ surface.
+We do not claim optimality or tradability; CMAPS is a descriptive inference tool for structured historical comparison on Bitcoin daily closes.

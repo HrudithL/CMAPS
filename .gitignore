@@ -22,8 +22,6 @@ dist-ssr/
 *.local
 web/dist/
 
-# LaTeX / method paper (local only — not published)
-paper/
 
 # IDE / OS
 .idea/

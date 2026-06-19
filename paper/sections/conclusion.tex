@@ -1,0 +1,16 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+CMAPS estimates a directional conditional probability by matching Bitcoin's current price-to-moving-average state to historical analogs and counting forward successes over horizon $T$.
+The method is deliberately simple: set arithmetic in \eqref{eq:k}--\eqref{eq:cp}, optional smoothing in \eqref{eq:smooth}, and full enumeration of contributing dates.
+
+For quantitative analysts, the practical value is twofold.
+First, $\widehat{\CP}$ is interpretable as a sample frequency with transparent $n$.
+Second, $(H,T,\eps)$ diagnostics make sensitivity visible rather than hidden inside a composite indicator.
+
+Reasonable extensions---same framework, not required for the core method---include alternative averages (EMA), explicit return summaries $\bar{R}_{t,T}$ conditional on $B$, and additional assets.
+CMAPS as specified here is a self-contained building block: a formal analog-matching conditional probability for Bitcoin trend states.
+
+\paragraph{Disclaimer.}
+Historical analog frequencies are descriptive statistics.
+They are not investment recommendations and do not incorporate costs, funding, or execution constraints.
